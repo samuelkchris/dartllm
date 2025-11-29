@@ -162,13 +162,17 @@ abstract final class PathUtils {
     return filename.substring(lastDot + 1);
   }
 
-  /// Gets the filename from a path.
+  /// Gets the filename from a path or URL.
   ///
   /// ```dart
   /// PathUtils.getFilename('/models/llama.gguf'); // 'llama.gguf'
+  /// PathUtils.getFilename('https://example.com/model.gguf'); // 'model.gguf'
   /// ```
   static String getFilename(String path) {
-    final lastSeparator = path.lastIndexOf(Platform.pathSeparator);
+    final lastSlash = path.lastIndexOf('/');
+    final lastBackslash = path.lastIndexOf('\\');
+    final lastSeparator =
+        lastSlash > lastBackslash ? lastSlash : lastBackslash;
     if (lastSeparator < 0) return path;
     return path.substring(lastSeparator + 1);
   }

@@ -35,13 +35,11 @@ void main() {
       expect(BindingFactory.instance, isNull);
     });
 
-    test('create throws when native library not available', () async {
-      // On a test environment without the native library,
-      // create should throw an exception
-      expect(
-        () => BindingFactory.create(),
-        throwsException,
-      );
+    test('create returns binding when native library available', () async {
+      // This test only passes when the native library is built
+      final binding = await BindingFactory.create();
+      expect(binding, isNotNull);
+      expect(BindingFactory.instance, isNotNull);
     });
   });
 }
