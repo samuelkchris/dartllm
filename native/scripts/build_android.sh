@@ -43,8 +43,9 @@ for ABI in $ABIS; do
         -DANDROID_ABI=$ABI \
         -DANDROID_PLATFORM=android-24 \
         -DANDROID_STL=c++_shared \
-        -DDARTLLM_BUILD_SHARED=ON \
-        -DDARTLLM_VULKAN=ON
+        -DBUILD_SHARED_LIBS=ON \
+        -DDARTLLM_VULKAN=OFF \
+        -DGGML_VULKAN=OFF
 
     cmake --build . --config Release --parallel
 
