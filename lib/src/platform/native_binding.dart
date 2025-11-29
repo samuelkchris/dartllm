@@ -124,6 +124,50 @@ typedef LlamaEmbedDart =
       Pointer<Int32> outDimension,
     );
 
+/// Native callback type for streaming token generation.
+/// int32_t callback(int32_t token, const char* text, int8_t is_final,
+///                  int32_t finish_reason, void* user_data)
+typedef StreamCallbackNative =
+    Int32 Function(
+      Int32 token,
+      Pointer<Utf8> text,
+      Int8 isFinal,
+      Int32 finishReason,
+      Pointer<Void> userData,
+    );
+
+/// Native function: Generate tokens with streaming callback.
+typedef LlamaGenerateStreamNative =
+    Int32 Function(
+      Pointer<Void> model,
+      Pointer<Int32> promptTokens,
+      Int32 promptLength,
+      Int32 maxTokens,
+      Float temperature,
+      Float topP,
+      Int32 topK,
+      Float minP,
+      Float repetitionPenalty,
+      Int32 seed,
+      Pointer<NativeFunction<StreamCallbackNative>> callback,
+      Pointer<Void> userData,
+    );
+typedef LlamaGenerateStreamDart =
+    int Function(
+      Pointer<Void> model,
+      Pointer<Int32> promptTokens,
+      int promptLength,
+      int maxTokens,
+      double temperature,
+      double topP,
+      int topK,
+      double minP,
+      double repetitionPenalty,
+      int seed,
+      Pointer<NativeFunction<StreamCallbackNative>> callback,
+      Pointer<Void> userData,
+    );
+
 /// Native function: Free allocated memory.
 typedef LlamaFreeNative = Void Function(Pointer<Void> ptr);
 typedef LlamaFreeDart = void Function(Pointer<Void> ptr);
@@ -223,6 +267,7 @@ class NativeBinding implements PlatformBinding {
   LlamaTokenizeDart? _llamaTokenize;
   LlamaDetokenizeDart? _llamaDetokenize;
   LlamaGenerateDart? _llamaGenerate;
+  LlamaGenerateStreamDart? _llamaGenerateStream;
   LlamaEmbedDart? _llamaEmbed;
   LlamaFreeDart? _llamaFree;
   LlamaHasGpuSupportDart? _llamaHasGpuSupport;
@@ -333,6 +378,12 @@ class NativeBinding implements PlatformBinding {
     _llamaGenerate = library
         .lookup<NativeFunction<LlamaGenerateNative>>('dartllm_generate')
         .asFunction<LlamaGenerateDart>();
+
+    _llamaGenerateStream = library
+        .lookup<NativeFunction<LlamaGenerateStreamNative>>(
+          'dartllm_generate_stream',
+        )
+        .asFunction<LlamaGenerateStreamDart>();
 
     _llamaEmbed = library
         .lookup<NativeFunction<LlamaEmbedNative>>('dartllm_embed')
@@ -502,21 +553,83 @@ class NativeBinding implements PlatformBinding {
   }
 
   @override
-  Stream<GenerateStreamChunk> generateStream(GenerateRequest request) async* {
+  Stream<GenerateStreamChunk> generateStream(GenerateRequest request) {
     _checkReady();
 
-    // For streaming, we generate in chunks by repeatedly calling generate
-    // with increasing max tokens. This is a simplified implementation;
-    // a proper implementation would use a native streaming API.
-    final result = await generate(request);
-
-    for (var i = 0; i < result.tokens.length; i++) {
-      final isLast = i == result.tokens.length - 1;
-      yield GenerateStreamChunk(
-        token: result.tokens[i],
-        finishReason: isLast ? result.finishReason : null,
-      );
+    final pointer = _modelPointers[request.modelHandle];
+    if (pointer == null) {
+      throw StateError('Invalid model handle: ${request.modelHandle}');
     }
+
+    final controller = StreamController<GenerateStreamChunk>();
+    final tokensPointer = calloc<Int32>(request.promptTokens.length);
+
+    for (var i = 0; i < request.promptTokens.length; i++) {
+      tokensPointer[i] = request.promptTokens[i];
+    }
+
+    var shouldContinue = true;
+
+    int streamCallback(
+      int token,
+      Pointer<Utf8> textPtr,
+      int isFinal,
+      int finishReason,
+      Pointer<Void> userData,
+    ) {
+      if (!shouldContinue) {
+        return 0;
+      }
+
+      final chunk = GenerateStreamChunk(
+        token: token,
+        text: textPtr != nullptr ? textPtr.toDartString() : null,
+        finishReason: isFinal != 0 ? FinishReason.values[finishReason] : null,
+      );
+      controller.add(chunk);
+
+      if (isFinal != 0) {
+        controller.close();
+        shouldContinue = false;
+      }
+      return shouldContinue ? 1 : 0;
+    }
+
+    final nativeCallback = NativeCallable<StreamCallbackNative>.isolateLocal(
+      streamCallback,
+      exceptionalReturn: 0,
+    );
+
+    Future<void>.microtask(() async {
+      try {
+        final result = _llamaGenerateStream!(
+          pointer,
+          tokensPointer,
+          request.promptTokens.length,
+          request.maxTokens,
+          request.temperature,
+          request.topP,
+          request.topK,
+          request.minP,
+          request.repetitionPenalty,
+          request.seed ?? -1,
+          nativeCallback.nativeFunction,
+          nullptr,
+        );
+
+        if (result < 0 && !controller.isClosed) {
+          controller.addError(
+            GenerationException('Streaming generation failed: code $result'),
+          );
+          controller.close();
+        }
+      } finally {
+        calloc.free(tokensPointer);
+        nativeCallback.close();
+      }
+    });
+
+    return controller.stream;
   }
 
   @override

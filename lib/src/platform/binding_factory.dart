@@ -43,7 +43,6 @@ abstract final class BindingFactory {
     }
 
     if (_initializing) {
-      // Wait for initialization to complete
       while (_initializing) {
         await Future.delayed(const Duration(milliseconds: 10));
       }

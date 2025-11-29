@@ -138,8 +138,10 @@ class LLMModel {
 
     final effectiveConfig = config ?? const GenerationConfig();
 
-    await for (final chunk
-        in _engine.chatStream(messages, config: effectiveConfig)) {
+    await for (final chunk in _engine.chatStream(
+      messages,
+      config: effectiveConfig,
+    )) {
       yield ChatCompletionChunk(
         delta: MessageDelta(content: chunk.text),
         finishReason: chunk.finishReason,
@@ -191,8 +193,10 @@ class LLMModel {
 
     final effectiveConfig = config ?? const GenerationConfig();
 
-    await for (final chunk
-        in _engine.generateStream(prompt, config: effectiveConfig)) {
+    await for (final chunk in _engine.generateStream(
+      prompt,
+      config: effectiveConfig,
+    )) {
       yield TextCompletionChunk(
         text: chunk.text,
         finishReason: chunk.finishReason,

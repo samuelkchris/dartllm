@@ -241,16 +241,12 @@ class InferenceEngine {
 
     _logger.debug('Generating from prompt, length: ${prompt.length}');
 
-    // Tokenize prompt
     final promptTokens = await _tokenizer!.encode(prompt, addSpecialTokens: true);
 
-    // Create generation request
     final request = _createGenerateRequest(promptTokens, config);
 
-    // Generate
     final result = await _binding.generate(request);
 
-    // Detokenize response
     final text = await _tokenizer!.decode(result.tokens);
 
     return GenerationResult(
@@ -278,13 +274,10 @@ class InferenceEngine {
 
     _logger.debug('Streaming generation from prompt, length: ${prompt.length}');
 
-    // Tokenize prompt
     final promptTokens = await _tokenizer!.encode(prompt, addSpecialTokens: true);
 
-    // Create generation request
     final request = _createGenerateRequest(promptTokens, config);
 
-    // Stream generation
     await for (final chunk in _binding.generateStream(request)) {
       final text = await _tokenizer!.decode([chunk.token]);
       yield GenerationChunk(
