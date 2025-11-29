@@ -1,0 +1,139 @@
+name: Build Native Libraries
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/**'
+      - '.github/workflows/build-native.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build for macOS (Universal)
+        run: |
+          mkdir -p native/build/macos
+          cmake -B native/build/macos -S native \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DGGML_METAL=ON \
+            -DGGML_METAL_EMBED_LIBRARY=ON \
+            -DLLAMA_BUILD_TESTS=OFF \
+            -DLLAMA_BUILD_EXAMPLES=OFF \
+            -DLLAMA_BUILD_SERVER=OFF \
+            -DBUILD_SHARED_LIBS=ON \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          cmake --build native/build/macos --config Release -j$(sysctl -n hw.ncpu)
+
+      - name: Package macOS binaries
+        run: |
+          mkdir -p artifacts/macos
+          cp -R native/build/macos/llamacpp.framework artifacts/macos/
+          cp native/build/macos/bin/*.dylib artifacts/macos/ 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-binaries
+          path: artifacts/macos/
+
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+      - name: Build for Linux
+        run: |
+          mkdir -p native/build/linux
+          cmake -B native/build/linux -S native \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLAMA_BUILD_TESTS=OFF \
+            -DLLAMA_BUILD_EXAMPLES=OFF \
+            -DLLAMA_BUILD_SERVER=OFF \
+            -DBUILD_SHARED_LIBS=ON
+          cmake --build native/build/linux --config Release -j$(nproc)
+
+      - name: Package Linux binaries
+        run: |
+          mkdir -p artifacts/linux
+          cp native/build/linux/*.so artifacts/linux/ 2>/dev/null || true
+          cp native/build/linux/bin/*.so* artifacts/linux/ 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-binaries
+          path: artifacts/linux/
+
+  build-windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build for Windows
+        run: |
+          mkdir -p native/build/windows
+          cmake -B native/build/windows -S native `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DLLAMA_BUILD_TESTS=OFF `
+            -DLLAMA_BUILD_EXAMPLES=OFF `
+            -DLLAMA_BUILD_SERVER=OFF `
+            -DBUILD_SHARED_LIBS=ON
+          cmake --build native/build/windows --config Release -j $env:NUMBER_OF_PROCESSORS
+
+      - name: Package Windows binaries
+        run: |
+          mkdir -p artifacts/windows
+          Get-ChildItem -Path native/build/windows -Recurse -Include *.dll | Copy-Item -Destination artifacts/windows/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-binaries
+          path: artifacts/windows/
+
+  package:
+    needs: [build-macos, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-binaries
+          path: blobs/macos/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-binaries
+          path: blobs/linux/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-binaries
+          path: blobs/windows/
+
+      - name: List packaged binaries
+        run: |
+          echo "=== macOS ==="
+          ls -lh blobs/macos/ || true
+          echo "=== Linux ==="
+          ls -lh blobs/linux/ || true
+          echo "=== Windows ==="
+          ls -lh blobs/windows/ || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: all-binaries
+          path: blobs/
