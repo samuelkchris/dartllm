@@ -15,10 +15,9 @@ void main() async {
 
   print('\nLoaded: ${model.modelInfo.name}\n');
 
-  final result = await model.chat(
-    [const UserMessage('Hello!')],
-    config: const GenerationConfig(maxTokens: 50),
-  );
+  final result = await model.chat([
+    const UserMessage('Hello!'),
+  ], config: const GenerationConfig(maxTokens: 50));
   print('Response: ${result.message.content}');
 
   await model.dispose();

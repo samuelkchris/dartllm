@@ -24,10 +24,9 @@ Future<void> completionExample(LLMModel model) async {
 }
 
 Future<void> chatExample(LLMModel model) async {
-  final result = await model.chat(
-    [const UserMessage('What is 2+2?')],
-    config: const GenerationConfig(maxTokens: 20),
-  );
+  final result = await model.chat([
+    const UserMessage('What is 2+2?'),
+  ], config: const GenerationConfig(maxTokens: 20));
   print('Chat: ${result.message.content}\n');
 }
 

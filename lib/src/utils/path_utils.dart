@@ -171,8 +171,7 @@ abstract final class PathUtils {
   static String getFilename(String path) {
     final lastSlash = path.lastIndexOf('/');
     final lastBackslash = path.lastIndexOf('\\');
-    final lastSeparator =
-        lastSlash > lastBackslash ? lastSlash : lastBackslash;
+    final lastSeparator = lastSlash > lastBackslash ? lastSlash : lastBackslash;
     if (lastSeparator < 0) return path;
     return path.substring(lastSeparator + 1);
   }
