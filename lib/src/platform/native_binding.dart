@@ -132,6 +132,64 @@ typedef LlamaFreeDart = void Function(Pointer<Void> ptr);
 typedef LlamaHasGpuSupportNative = Int8 Function();
 typedef LlamaHasGpuSupportDart = int Function();
 
+/// Native struct for model information.
+///
+/// This struct matches the layout of DartLLMModelInfo in dartllm.h.
+/// Fixed-size char arrays are used for strings to ensure ABI compatibility.
+final class DartLLMModelInfoStruct extends Struct {
+  /// Model name (null-terminated, max 256 chars).
+  @Array(256)
+  external Array<Uint8> name;
+
+  /// Number of parameters in the model.
+  @Int64()
+  external int parameterCount;
+
+  /// Model architecture name (null-terminated, max 64 chars).
+  @Array(64)
+  external Array<Uint8> architecture;
+
+  /// Quantization format (null-terminated, max 32 chars).
+  @Array(32)
+  external Array<Uint8> quantization;
+
+  /// Maximum context size in tokens.
+  @Int32()
+  external int contextSize;
+
+  /// Vocabulary size.
+  @Int32()
+  external int vocabularySize;
+
+  /// Embedding dimension.
+  @Int32()
+  external int embeddingSize;
+
+  /// Number of transformer layers.
+  @Int32()
+  external int layerCount;
+
+  /// Number of attention heads.
+  @Int32()
+  external int headCount;
+
+  /// File size in bytes.
+  @Int64()
+  external int fileSizeBytes;
+
+  /// Whether model supports embeddings (0 or 1).
+  @Int8()
+  external int supportsEmbedding;
+
+  /// Whether model supports vision (0 or 1).
+  @Int8()
+  external int supportsVision;
+
+  /// Chat template string (null-terminated, max 4096 chars).
+  @Array(4096)
+  external Array<Uint8> chatTemplate;
+}
+
 /// Platform binding implementation using Dart FFI.
 ///
 /// This binding communicates with the native llama.cpp library
@@ -618,23 +676,34 @@ class NativeBinding implements PlatformBinding {
 
   /// Parses the native model info structure.
   ModelInfo _parseModelInfo(Pointer<Void> infoPointer) {
-    // The native info structure layout matches ModelInfo fields.
-    // This is a simplified parsing; actual implementation would
-    // read from the native struct.
-    //
-    // For now, return placeholder values until native integration.
-    return const ModelInfo(
-      name: 'Unknown',
-      parameterCount: 0,
-      architecture: 'unknown',
-      quantization: 'unknown',
-      contextSize: 0,
-      vocabularySize: 0,
-      embeddingSize: 0,
-      layerCount: 0,
-      headCount: 0,
-      fileSizeBytes: 0,
+    final info = infoPointer.cast<DartLLMModelInfoStruct>().ref;
+
+    return ModelInfo(
+      name: _arrayToString(info.name, 256),
+      parameterCount: info.parameterCount,
+      architecture: _arrayToString(info.architecture, 64),
+      quantization: _arrayToString(info.quantization, 32),
+      contextSize: info.contextSize,
+      vocabularySize: info.vocabularySize,
+      embeddingSize: info.embeddingSize,
+      layerCount: info.layerCount,
+      headCount: info.headCount,
+      fileSizeBytes: info.fileSizeBytes,
+      supportsEmbedding: info.supportsEmbedding != 0,
+      supportsVision: info.supportsVision != 0,
+      chatTemplate: _arrayToString(info.chatTemplate, 4096),
     );
+  }
+
+  /// Converts a fixed-size char array to a Dart string.
+  String _arrayToString(Array<Uint8> array, int maxLength) {
+    final bytes = <int>[];
+    for (var i = 0; i < maxLength; i++) {
+      final byte = array[i];
+      if (byte == 0) break;
+      bytes.add(byte);
+    }
+    return String.fromCharCodes(bytes);
   }
 
   @override

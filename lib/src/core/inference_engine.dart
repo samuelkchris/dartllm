@@ -446,13 +446,16 @@ class InferenceEngine {
   }
 
   /// Creates a GenerateRequest from config.
+  ///
+  /// Stop sequences are handled via post-processing in [_extractResponse]
+  /// rather than as native stop tokens. This approach is more reliable because:
+  /// - Stop sequences may span multiple tokens
+  /// - Token boundaries don't always align with sequence boundaries
+  /// - String matching in extractResponse handles partial matches correctly
   GenerateRequest _createGenerateRequest(
     List<int> promptTokens,
     GenerationConfig config,
   ) {
-    // Note: stopSequences are string-based and handled by extractResponse.
-    // For native stop tokens, we would need to tokenize each stop sequence.
-    // For now, we use an empty list and rely on post-processing.
     return GenerateRequest(
       modelHandle: _handle!,
       promptTokens: promptTokens,

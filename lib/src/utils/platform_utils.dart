@@ -221,6 +221,45 @@ abstract final class PlatformUtils {
 
   /// Checks if the current platform is supported.
   static bool get isSupported => current != DartLLMPlatform.unknown;
+
+  /// Gets the default cache directory for the current platform.
+  ///
+  /// Returns a platform-specific path suitable for caching model files.
+  /// On mobile, this uses the application's cache directory.
+  /// On desktop, this uses a subdirectory in the user's home directory.
+  static Future<String> get defaultCacheDirectory async {
+    if (isWeb) {
+      return '/dartllm/cache'; // IndexedDB path (virtual)
+    }
+
+    final home = Platform.environment['HOME'] ??
+        Platform.environment['USERPROFILE'] ??
+        '.';
+
+    switch (current) {
+      case DartLLMPlatform.macos:
+        return '$home/Library/Caches/DartLLM';
+      case DartLLMPlatform.linux:
+        final xdgCache = Platform.environment['XDG_CACHE_HOME'];
+        if (xdgCache != null && xdgCache.isNotEmpty) {
+          return '$xdgCache/dartllm';
+        }
+        return '$home/.cache/dartllm';
+      case DartLLMPlatform.windows:
+        final localAppData = Platform.environment['LOCALAPPDATA'];
+        if (localAppData != null && localAppData.isNotEmpty) {
+          return '$localAppData/DartLLM/Cache';
+        }
+        return '$home/AppData/Local/DartLLM/Cache';
+      case DartLLMPlatform.android:
+      case DartLLMPlatform.ios:
+        // On mobile, caller should use path_provider package
+        return '$home/.dartllm/cache';
+      case DartLLMPlatform.web:
+      case DartLLMPlatform.unknown:
+        return '$home/.dartllm/cache';
+    }
+  }
 }
 
 /// Detects if running in a web environment.

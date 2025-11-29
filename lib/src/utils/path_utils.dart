@@ -224,4 +224,46 @@ abstract final class PathUtils {
     final extension = getExtension(url);
     return extension.isNotEmpty ? '$hash.$extension' : hash;
   }
+
+  /// Validates that a path is safe and doesn't contain dangerous patterns.
+  ///
+  /// Throws [ArgumentError] if the path is unsafe.
+  ///
+  /// Checks for:
+  /// - Path traversal attempts (..)
+  /// - Empty paths
+  /// - Null bytes
+  static void validatePath(String path) {
+    if (path.isEmpty) {
+      throw ArgumentError.value(path, 'path', 'Path cannot be empty');
+    }
+
+    if (path.contains('\x00')) {
+      throw ArgumentError.value(path, 'path', 'Path cannot contain null bytes');
+    }
+
+    // Check for path traversal
+    final segments = path.split(RegExp(r'[/\\]'));
+    for (final segment in segments) {
+      if (segment == '..') {
+        throw ArgumentError.value(
+          path,
+          'path',
+          'Path traversal detected (..) is not allowed',
+        );
+      }
+    }
+  }
+
+  /// Checks if a path is safe without throwing.
+  ///
+  /// Returns true if the path passes validation.
+  static bool isValidPath(String path) {
+    try {
+      validatePath(path);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 }
