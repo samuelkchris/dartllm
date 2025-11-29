@@ -3,9 +3,8 @@
 .vscode/
 .idea/
 
-# Native build artifacts (binaries are in blobs/)
-native/build/
-native/llama.cpp/
+# Native source and build artifacts
+native/
 
 # Test models (too large for pub)
 test_models/
@@ -16,3 +15,8 @@ docs/
 # Git
 .git/
 .gitmodules
+
+# Specific gitignored files that are checked in (from llama.cpp submodule)
+*.log
+*.xcworkspace
+*.plist
