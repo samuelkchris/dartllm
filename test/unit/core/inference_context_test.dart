@@ -190,7 +190,8 @@ void main() {
         contextF16.addTokens(List.filled(100, 1));
         contextQ8.addTokens(List.filled(100, 1));
 
-        expect(contextQ8.estimateMemoryUsage(), lessThan(contextF16.estimateMemoryUsage()));
+        expect(contextQ8.estimateMemoryUsage(),
+            lessThan(contextF16.estimateMemoryUsage()));
 
         contextF16.dispose();
         contextQ8.dispose();

@@ -302,7 +302,8 @@ void main() {
         // Stream methods check disposed synchronously
         expect(
           () async {
-            await for (final _ in model.chatStream([const ChatMessage.user('Hello')])) {
+            await for (final _
+                in model.chatStream([const ChatMessage.user('Hello')])) {
               // Should not reach here
             }
           }(),

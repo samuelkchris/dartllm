@@ -1,0 +1,18 @@
+# Development files
+.github/
+.vscode/
+.idea/
+
+# Native build artifacts (binaries are in blobs/)
+native/build/
+native/llama.cpp/
+
+# Test models (too large for pub)
+test_models/
+
+# Documentation source
+docs/
+
+# Git
+.git/
+.gitmodules

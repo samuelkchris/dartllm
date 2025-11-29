@@ -117,7 +117,11 @@ abstract final class MemoryUtils {
       );
     }
     // KV cache size = 2 (K + V) * layers * context * heads * head_dim * precision
-    return 2 * layerCount * contextSize * headCount * headDimension *
+    return 2 *
+        layerCount *
+        contextSize *
+        headCount *
+        headDimension *
         bytesPerElement;
   }
 

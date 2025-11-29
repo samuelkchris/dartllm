@@ -40,7 +40,8 @@ class DownloadProgress {
   double get downloadedMB => downloadedBytes / (1024 * 1024);
 
   /// Total megabytes, or null if unknown.
-  double? get totalMB => totalBytes != null ? totalBytes! / (1024 * 1024) : null;
+  double? get totalMB =>
+      totalBytes != null ? totalBytes! / (1024 * 1024) : null;
 }
 
 /// Result of a completed download.
@@ -178,13 +179,17 @@ class ModelDownloader {
       // Get total size
       final contentLength = response.contentLength;
       final totalBytes = contentLength > 0
-          ? (response.statusCode == 206 ? startByte + contentLength : contentLength)
+          ? (response.statusCode == 206
+              ? startByte + contentLength
+              : contentLength)
           : expectedSize;
 
-      _logger.info('Total size: ${totalBytes != null ? "${totalBytes ~/ (1024 * 1024)} MB" : "unknown"}');
+      _logger.info(
+          'Total size: ${totalBytes != null ? "${totalBytes ~/ (1024 * 1024)} MB" : "unknown"}');
 
       // Open file for writing
-      final sink = tempFile.openWrite(mode: startByte > 0 ? FileMode.append : FileMode.write);
+      final sink = tempFile.openWrite(
+          mode: startByte > 0 ? FileMode.append : FileMode.write);
 
       try {
         await for (final chunk in response) {
@@ -223,7 +228,8 @@ class ModelDownloader {
         await tempFile.delete();
         throw DownloadException(
           url,
-          message: 'Size mismatch: expected $expectedSize, got $downloadedBytes',
+          message:
+              'Size mismatch: expected $expectedSize, got $downloadedBytes',
           bytesDownloaded: downloadedBytes,
           totalBytes: expectedSize,
         );
@@ -236,7 +242,8 @@ class ModelDownloader {
           await tempFile.delete();
           throw DownloadException(
             url,
-            message: 'Checksum mismatch: expected $expectedSha256, got $actualHash',
+            message:
+                'Checksum mismatch: expected $expectedSha256, got $actualHash',
           );
         }
         _logger.info('Checksum verified');

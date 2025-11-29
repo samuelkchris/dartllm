@@ -157,7 +157,8 @@ void main() {
       });
 
       test('matches Platform.numberOfProcessors', () {
-        expect(PlatformUtils.processorCount, equals(Platform.numberOfProcessors));
+        expect(
+            PlatformUtils.processorCount, equals(Platform.numberOfProcessors));
       });
     });
 

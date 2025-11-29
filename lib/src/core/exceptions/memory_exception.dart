@@ -67,7 +67,8 @@ class InsufficientMemoryException extends MemoryException {
     if (requiredBytes != null && availableBytes != null) {
       final requiredMb = (requiredBytes! / (1024 * 1024)).toStringAsFixed(1);
       final availableMb = (availableBytes! / (1024 * 1024)).toStringAsFixed(1);
-      buffer.write('Requires ${requiredMb}MB but only ${availableMb}MB available');
+      buffer.write(
+          'Requires ${requiredMb}MB but only ${availableMb}MB available');
     } else {
       buffer.write('Insufficient memory to complete the operation');
     }
@@ -118,7 +119,8 @@ class MemoryAllocationException extends MemoryException {
 
   @override
   String toString() {
-    final buffer = StringBuffer('MemoryAllocationException: Failed to allocate memory');
+    final buffer =
+        StringBuffer('MemoryAllocationException: Failed to allocate memory');
     if (allocationPurpose != null) {
       buffer.write(' for $allocationPurpose');
     }

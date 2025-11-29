@@ -228,7 +228,8 @@ class IsolateManager {
   void _handleResponse(IsolateResponse response) {
     final completer = _pendingRequests.remove(response.requestId);
     if (completer == null) {
-      _logger.warning('Received response for unknown request: ${response.requestId}');
+      _logger.warning(
+          'Received response for unknown request: ${response.requestId}');
       return;
     }
 

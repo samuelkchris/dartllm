@@ -67,12 +67,14 @@ class DownloadException extends NetworkException {
 
   @override
   String toString() {
-    final buffer = StringBuffer('DownloadException: Failed to download from "$url"');
+    final buffer =
+        StringBuffer('DownloadException: Failed to download from "$url"');
     if (statusCode != null) {
       buffer.write(' (HTTP $statusCode)');
     }
     if (bytesDownloaded != null) {
-      final downloadedMb = (bytesDownloaded! / (1024 * 1024)).toStringAsFixed(1);
+      final downloadedMb =
+          (bytesDownloaded! / (1024 * 1024)).toStringAsFixed(1);
       if (totalBytes != null) {
         final totalMb = (totalBytes! / (1024 * 1024)).toStringAsFixed(1);
         buffer.write(' [${downloadedMb}MB of ${totalMb}MB downloaded]');
@@ -184,7 +186,8 @@ class AuthenticationException extends NetworkException {
   }
 
   /// Creates an exception for an invalid or expired token.
-  factory AuthenticationException.invalidToken(String service, {Object? cause}) {
+  factory AuthenticationException.invalidToken(String service,
+      {Object? cause}) {
     return AuthenticationException(
       'Authentication token for $service is invalid or expired',
       service: service,

@@ -49,7 +49,7 @@ void main() {
 
       const config = ModelConfig(
         contextSize: 512,
-        gpuLayers: 0,  // CPU only for testing
+        gpuLayers: 0, // CPU only for testing
         threads: 4,
         batchSize: 512,
         useMemoryMap: true,

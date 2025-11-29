@@ -33,7 +33,8 @@ class HuggingFaceFile {
   double get sizeGB => sizeBytes / (1024 * 1024 * 1024);
 
   @override
-  String toString() => 'HuggingFaceFile($filename, ${sizeMB.toStringAsFixed(1)} MB)';
+  String toString() =>
+      'HuggingFaceFile($filename, ${sizeMB.toStringAsFixed(1)} MB)';
 }
 
 /// Information about a HuggingFace repository.
@@ -163,7 +164,8 @@ class HuggingFaceClient {
     String branch = 'main',
     String? path,
   }) async {
-    _logger.debug('Listing files: $repoId/$branch${path != null ? '/$path' : ''}');
+    _logger
+        .debug('Listing files: $repoId/$branch${path != null ? '/$path' : ''}');
 
     var url = '$_apiBaseUrl/models/$repoId/tree/$branch';
     if (path != null && path.isNotEmpty) {
@@ -173,7 +175,8 @@ class HuggingFaceClient {
     final data = await _get(url);
 
     if (data is! List) {
-      throw DownloadException(url, message: 'Invalid response from HuggingFace API');
+      throw DownloadException(url,
+          message: 'Invalid response from HuggingFace API');
     }
 
     final files = <HuggingFaceFile>[];
@@ -333,7 +336,8 @@ class HuggingFaceClient {
         cause: e,
       );
     } on FormatException catch (e) {
-      throw DownloadException(url, message: 'Invalid JSON response: ${e.message}');
+      throw DownloadException(url,
+          message: 'Invalid JSON response: ${e.message}');
     }
   }
 

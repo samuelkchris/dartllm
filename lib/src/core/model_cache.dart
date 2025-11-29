@@ -62,7 +62,8 @@ class ModelCache {
   Future<void> initialize() async {
     if (_initialized) return;
 
-    final dirPath = _customCacheDir ?? await PlatformUtils.defaultCacheDirectory;
+    final dirPath =
+        _customCacheDir ?? await PlatformUtils.defaultCacheDirectory;
     _cacheDir = Directory(dirPath);
 
     if (!await _cacheDir!.exists()) {
@@ -237,7 +238,8 @@ class ModelCache {
       totalFreed += await removeModel(model.modelId);
     }
 
-    _logger.info('Cache cleared, freed ${(totalFreed / (1024 * 1024)).toStringAsFixed(1)} MB');
+    _logger.info(
+        'Cache cleared, freed ${(totalFreed / (1024 * 1024)).toStringAsFixed(1)} MB');
 
     return totalFreed;
   }

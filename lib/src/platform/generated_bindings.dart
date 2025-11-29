@@ -19,11 +19,11 @@ import 'dart:ffi' as ffi;
 class DartLLMBindings {
   /// Holds the symbol lookup function.
   final ffi.Pointer<T> Function<T extends ffi.NativeType>(String symbolName)
-  _lookup;
+      _lookup;
 
   /// The symbols are looked up in [dynamicLibrary].
   DartLLMBindings(ffi.DynamicLibrary dynamicLibrary)
-    : _lookup = dynamicLibrary.lookup;
+      : _lookup = dynamicLibrary.lookup;
 
   /// The symbols are looked up with [lookup].
   DartLLMBindings.fromLookup(
@@ -53,10 +53,10 @@ class DartLLMBindings {
 
   late final _dartllm_versionPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function()>>(
-        'dartllm_version',
-      );
-  late final _dartllm_version = _dartllm_versionPtr
-      .asFunction<ffi.Pointer<ffi.Char> Function()>();
+    'dartllm_version',
+  );
+  late final _dartllm_version =
+      _dartllm_versionPtr.asFunction<ffi.Pointer<ffi.Char> Function()>();
 
   /// Get the llama.cpp backend version.
   ///
@@ -67,10 +67,10 @@ class DartLLMBindings {
 
   late final _dartllm_llama_versionPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function()>>(
-        'dartllm_llama_version',
-      );
-  late final _dartllm_llama_version = _dartllm_llama_versionPtr
-      .asFunction<ffi.Pointer<ffi.Char> Function()>();
+    'dartllm_llama_version',
+  );
+  late final _dartllm_llama_version =
+      _dartllm_llama_versionPtr.asFunction<ffi.Pointer<ffi.Char> Function()>();
 
   /// Load a model from a GGUF file.
   ///
@@ -100,9 +100,8 @@ class DartLLMBindings {
     );
   }
 
-  late final _dartllm_load_modelPtr =
-      _lookup<
-        ffi.NativeFunction<
+  late final _dartllm_load_modelPtr = _lookup<
+      ffi.NativeFunction<
           ffi.Pointer<ffi.Void> Function(
             ffi.Pointer<ffi.Char>,
             ffi.Int32,
@@ -110,20 +109,16 @@ class DartLLMBindings {
             ffi.Int32,
             ffi.Int32,
             ffi.Int8,
-          )
-        >
-      >('dartllm_load_model');
-  late final _dartllm_load_model = _dartllm_load_modelPtr
-      .asFunction<
-        ffi.Pointer<ffi.Void> Function(
-          ffi.Pointer<ffi.Char>,
-          int,
-          int,
-          int,
-          int,
-          int,
-        )
-      >();
+          )>>('dartllm_load_model');
+  late final _dartllm_load_model = _dartllm_load_modelPtr.asFunction<
+      ffi.Pointer<ffi.Void> Function(
+        ffi.Pointer<ffi.Char>,
+        int,
+        int,
+        int,
+        int,
+        int,
+      )>();
 
   /// Unload a model and free all associated resources.
   ///
@@ -134,10 +129,10 @@ class DartLLMBindings {
 
   late final _dartllm_free_modelPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'dartllm_free_model',
-      );
-  late final _dartllm_free_model = _dartllm_free_modelPtr
-      .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+    'dartllm_free_model',
+  );
+  late final _dartllm_free_model =
+      _dartllm_free_modelPtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   /// Get information about a loaded model.
   ///
@@ -151,16 +146,12 @@ class DartLLMBindings {
     return _dartllm_get_model_info(model);
   }
 
-  late final _dartllm_get_model_infoPtr =
-      _lookup<
-        ffi.NativeFunction<
-          ffi.Pointer<DartLLMModelInfo> Function(ffi.Pointer<ffi.Void>)
-        >
-      >('dartllm_get_model_info');
-  late final _dartllm_get_model_info = _dartllm_get_model_infoPtr
-      .asFunction<
-        ffi.Pointer<DartLLMModelInfo> Function(ffi.Pointer<ffi.Void>)
-      >();
+  late final _dartllm_get_model_infoPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Pointer<DartLLMModelInfo> Function(
+              ffi.Pointer<ffi.Void>)>>('dartllm_get_model_info');
+  late final _dartllm_get_model_info = _dartllm_get_model_infoPtr.asFunction<
+      ffi.Pointer<DartLLMModelInfo> Function(ffi.Pointer<ffi.Void>)>();
 
   /// Tokenize text to token IDs.
   ///
@@ -180,26 +171,21 @@ class DartLLMBindings {
     return _dartllm_tokenize(model, text, add_special, out_length);
   }
 
-  late final _dartllm_tokenizePtr =
-      _lookup<
-        ffi.NativeFunction<
+  late final _dartllm_tokenizePtr = _lookup<
+      ffi.NativeFunction<
           ffi.Pointer<ffi.Int32> Function(
             ffi.Pointer<ffi.Void>,
             ffi.Pointer<ffi.Char>,
             ffi.Int8,
             ffi.Pointer<ffi.Int32>,
-          )
-        >
-      >('dartllm_tokenize');
-  late final _dartllm_tokenize = _dartllm_tokenizePtr
-      .asFunction<
-        ffi.Pointer<ffi.Int32> Function(
-          ffi.Pointer<ffi.Void>,
-          ffi.Pointer<ffi.Char>,
-          int,
-          ffi.Pointer<ffi.Int32>,
-        )
-      >();
+          )>>('dartllm_tokenize');
+  late final _dartllm_tokenize = _dartllm_tokenizePtr.asFunction<
+      ffi.Pointer<ffi.Int32> Function(
+        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Char>,
+        int,
+        ffi.Pointer<ffi.Int32>,
+      )>();
 
   /// Convert token IDs back to text.
   ///
@@ -217,24 +203,19 @@ class DartLLMBindings {
     return _dartllm_detokenize(model, tokens, token_count);
   }
 
-  late final _dartllm_detokenizePtr =
-      _lookup<
-        ffi.NativeFunction<
+  late final _dartllm_detokenizePtr = _lookup<
+      ffi.NativeFunction<
           ffi.Pointer<ffi.Char> Function(
             ffi.Pointer<ffi.Void>,
             ffi.Pointer<ffi.Int32>,
             ffi.Int32,
-          )
-        >
-      >('dartllm_detokenize');
-  late final _dartllm_detokenize = _dartllm_detokenizePtr
-      .asFunction<
-        ffi.Pointer<ffi.Char> Function(
-          ffi.Pointer<ffi.Void>,
-          ffi.Pointer<ffi.Int32>,
-          int,
-        )
-      >();
+          )>>('dartllm_detokenize');
+  late final _dartllm_detokenize = _dartllm_detokenizePtr.asFunction<
+      ffi.Pointer<ffi.Char> Function(
+        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Int32>,
+        int,
+      )>();
 
   /// Generate tokens from a prompt.
   ///
@@ -277,9 +258,8 @@ class DartLLMBindings {
     );
   }
 
-  late final _dartllm_generatePtr =
-      _lookup<
-        ffi.NativeFunction<
+  late final _dartllm_generatePtr = _lookup<
+      ffi.NativeFunction<
           ffi.Pointer<DartLLMGenerateResult> Function(
             ffi.Pointer<ffi.Void>,
             ffi.Pointer<ffi.Int32>,
@@ -291,24 +271,20 @@ class DartLLMBindings {
             ffi.Float,
             ffi.Float,
             ffi.Int32,
-          )
-        >
-      >('dartllm_generate');
-  late final _dartllm_generate = _dartllm_generatePtr
-      .asFunction<
-        ffi.Pointer<DartLLMGenerateResult> Function(
-          ffi.Pointer<ffi.Void>,
-          ffi.Pointer<ffi.Int32>,
-          int,
-          int,
-          double,
-          double,
-          int,
-          double,
-          double,
-          int,
-        )
-      >();
+          )>>('dartllm_generate');
+  late final _dartllm_generate = _dartllm_generatePtr.asFunction<
+      ffi.Pointer<DartLLMGenerateResult> Function(
+        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Int32>,
+        int,
+        int,
+        double,
+        double,
+        int,
+        double,
+        double,
+        int,
+      )>();
 
   /// Generate tokens with streaming callback.
   ///
@@ -360,9 +336,8 @@ class DartLLMBindings {
     );
   }
 
-  late final _dartllm_generate_streamPtr =
-      _lookup<
-        ffi.NativeFunction<
+  late final _dartllm_generate_streamPtr = _lookup<
+      ffi.NativeFunction<
           ffi.Int32 Function(
             ffi.Pointer<ffi.Void>,
             ffi.Pointer<ffi.Int32>,
@@ -376,26 +351,22 @@ class DartLLMBindings {
             ffi.Int32,
             DartLLMStreamCallback,
             ffi.Pointer<ffi.Void>,
-          )
-        >
-      >('dartllm_generate_stream');
-  late final _dartllm_generate_stream = _dartllm_generate_streamPtr
-      .asFunction<
-        int Function(
-          ffi.Pointer<ffi.Void>,
-          ffi.Pointer<ffi.Int32>,
-          int,
-          int,
-          double,
-          double,
-          int,
-          double,
-          double,
-          int,
-          DartLLMStreamCallback,
-          ffi.Pointer<ffi.Void>,
-        )
-      >();
+          )>>('dartllm_generate_stream');
+  late final _dartllm_generate_stream = _dartllm_generate_streamPtr.asFunction<
+      int Function(
+        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Int32>,
+        int,
+        int,
+        double,
+        double,
+        int,
+        double,
+        double,
+        int,
+        DartLLMStreamCallback,
+        ffi.Pointer<ffi.Void>,
+      )>();
 
   /// Generate embeddings for tokens.
   ///
@@ -417,28 +388,23 @@ class DartLLMBindings {
     return _dartllm_embed(model, tokens, token_count, normalize, out_dimension);
   }
 
-  late final _dartllm_embedPtr =
-      _lookup<
-        ffi.NativeFunction<
+  late final _dartllm_embedPtr = _lookup<
+      ffi.NativeFunction<
           ffi.Pointer<ffi.Float> Function(
             ffi.Pointer<ffi.Void>,
             ffi.Pointer<ffi.Int32>,
             ffi.Int32,
             ffi.Int8,
             ffi.Pointer<ffi.Int32>,
-          )
-        >
-      >('dartllm_embed');
-  late final _dartllm_embed = _dartllm_embedPtr
-      .asFunction<
-        ffi.Pointer<ffi.Float> Function(
-          ffi.Pointer<ffi.Void>,
-          ffi.Pointer<ffi.Int32>,
-          int,
-          int,
-          ffi.Pointer<ffi.Int32>,
-        )
-      >();
+          )>>('dartllm_embed');
+  late final _dartllm_embed = _dartllm_embedPtr.asFunction<
+      ffi.Pointer<ffi.Float> Function(
+        ffi.Pointer<ffi.Void>,
+        ffi.Pointer<ffi.Int32>,
+        int,
+        int,
+        ffi.Pointer<ffi.Int32>,
+      )>();
 
   /// Check if GPU acceleration is available.
   ///
@@ -449,10 +415,10 @@ class DartLLMBindings {
 
   late final _dartllm_has_gpu_supportPtr =
       _lookup<ffi.NativeFunction<ffi.Int8 Function()>>(
-        'dartllm_has_gpu_support',
-      );
-  late final _dartllm_has_gpu_support = _dartllm_has_gpu_supportPtr
-      .asFunction<int Function()>();
+    'dartllm_has_gpu_support',
+  );
+  late final _dartllm_has_gpu_support =
+      _dartllm_has_gpu_supportPtr.asFunction<int Function()>();
 
   /// Get the name of the active GPU backend.
   ///
@@ -463,8 +429,8 @@ class DartLLMBindings {
 
   late final _dartllm_gpu_backend_namePtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function()>>(
-        'dartllm_gpu_backend_name',
-      );
+    'dartllm_gpu_backend_name',
+  );
   late final _dartllm_gpu_backend_name = _dartllm_gpu_backend_namePtr
       .asFunction<ffi.Pointer<ffi.Char> Function()>();
 
@@ -477,10 +443,10 @@ class DartLLMBindings {
 
   late final _dartllm_get_vram_sizePtr =
       _lookup<ffi.NativeFunction<ffi.Int64 Function()>>(
-        'dartllm_get_vram_size',
-      );
-  late final _dartllm_get_vram_size = _dartllm_get_vram_sizePtr
-      .asFunction<int Function()>();
+    'dartllm_get_vram_size',
+  );
+  late final _dartllm_get_vram_size =
+      _dartllm_get_vram_sizePtr.asFunction<int Function()>();
 
   /// Free memory allocated by DartLLM functions.
   ///
@@ -491,10 +457,10 @@ class DartLLMBindings {
 
   late final _dartllm_freePtr =
       _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
-        'dartllm_free',
-      );
-  late final _dartllm_free = _dartllm_freePtr
-      .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+    'dartllm_free',
+  );
+  late final _dartllm_free =
+      _dartllm_freePtr.asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   /// Get the last error message.
   ///
@@ -505,10 +471,10 @@ class DartLLMBindings {
 
   late final _dartllm_get_last_errorPtr =
       _lookup<ffi.NativeFunction<ffi.Pointer<ffi.Char> Function()>>(
-        'dartllm_get_last_error',
-      );
-  late final _dartllm_get_last_error = _dartllm_get_last_errorPtr
-      .asFunction<ffi.Pointer<ffi.Char> Function()>();
+    'dartllm_get_last_error',
+  );
+  late final _dartllm_get_last_error =
+      _dartllm_get_last_errorPtr.asFunction<ffi.Pointer<ffi.Char> Function()>();
 
   /// Clear the last error.
   void dartllm_clear_error() {
@@ -517,8 +483,8 @@ class DartLLMBindings {
 
   late final _dartllm_clear_errorPtr =
       _lookup<ffi.NativeFunction<ffi.Void Function()>>('dartllm_clear_error');
-  late final _dartllm_clear_error = _dartllm_clear_errorPtr
-      .asFunction<void Function()>();
+  late final _dartllm_clear_error =
+      _dartllm_clear_errorPtr.asFunction<void Function()>();
 }
 
 /// mbstate_t is an opaque object to keep conversion state, during multibyte
@@ -605,15 +571,12 @@ final class DartLLMGenerateResult extends ffi.Opaque {}
 /// @param user_data User-provided context pointer
 ///
 /// @return Non-zero to continue generation, zero to abort
-typedef DartLLMStreamCallback =
-    ffi.Pointer<
-      ffi.NativeFunction<
+typedef DartLLMStreamCallback = ffi.Pointer<
+    ffi.NativeFunction<
         ffi.Int32 Function(
           ffi.Int32 token,
           ffi.Pointer<ffi.Char> text,
           ffi.Int8 is_final,
           ffi.Int32 finish_reason,
           ffi.Pointer<ffi.Void> user_data,
-        )
-      >
-    >;
+        )>>;

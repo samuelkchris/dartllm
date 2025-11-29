@@ -76,7 +76,8 @@ class InvalidModelException extends ModelException {
 
   @override
   String toString() {
-    final buffer = StringBuffer('InvalidModelException: Invalid model at "$path"');
+    final buffer =
+        StringBuffer('InvalidModelException: Invalid model at "$path"');
     if (details != null) {
       buffer.write(': $details');
     }
@@ -154,9 +155,11 @@ class ModelCorruptedException extends ModelException {
 
   @override
   String toString() {
-    final buffer = StringBuffer('ModelCorruptedException: Model file is corrupted at "$path"');
+    final buffer = StringBuffer(
+        'ModelCorruptedException: Model file is corrupted at "$path"');
     if (expectedChecksum != null && actualChecksum != null) {
-      buffer.write(' (expected checksum: $expectedChecksum, actual: $actualChecksum)');
+      buffer.write(
+          ' (expected checksum: $expectedChecksum, actual: $actualChecksum)');
     }
     if (cause != null) {
       buffer.write(' (caused by: $cause)');

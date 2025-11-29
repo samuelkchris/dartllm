@@ -1,4 +1,5 @@
 #!/usr/bin/env dart
+
 /// DartLLM Setup Script
 ///
 /// This script builds the native library for your platform and places it
@@ -32,7 +33,8 @@ Future<void> main(List<String> args) async {
   if (!llamaCppDir.existsSync() ||
       !File(p.join(llamaCppDir.path, 'CMakeLists.txt')).existsSync()) {
     print('📥 Initializing llama.cpp submodule...');
-    final result = await _runCommand('git', ['submodule', 'update', '--init', '--recursive'],
+    final result = await _runCommand(
+        'git', ['submodule', 'update', '--init', '--recursive'],
         workingDirectory: packageRoot);
     if (result != 0) {
       print('❌ Failed to initialize submodule. Please run manually:');
@@ -84,8 +86,10 @@ Future<void> _buildMacOS(String packageRoot) async {
   var result = await _runCommand(
     'cmake',
     [
-      '-B', buildDir,
-      '-S', nativeDir,
+      '-B',
+      buildDir,
+      '-S',
+      nativeDir,
       '-DCMAKE_BUILD_TYPE=Release',
       '-DGGML_METAL=ON',
       '-DGGML_METAL_EMBED_LIBRARY=ON',
@@ -107,7 +111,14 @@ Future<void> _buildMacOS(String packageRoot) async {
   print('🔧 Building native library...');
   result = await _runCommand(
     'cmake',
-    ['--build', buildDir, '--config', 'Release', '-j', '${Platform.numberOfProcessors}'],
+    [
+      '--build',
+      buildDir,
+      '--config',
+      'Release',
+      '-j',
+      '${Platform.numberOfProcessors}'
+    ],
     workingDirectory: packageRoot,
   );
 
@@ -123,10 +134,12 @@ Future<void> _buildMacOS(String packageRoot) async {
   final frameworkSrc = Directory(p.join(buildDir, 'llamacpp.framework'));
   if (frameworkSrc.existsSync()) {
     print('📦 Copying framework to blobs directory...');
-    await _copyDirectory(frameworkSrc, Directory(p.join(blobsDir, 'llamacpp.framework')));
+    await _copyDirectory(
+        frameworkSrc, Directory(p.join(blobsDir, 'llamacpp.framework')));
 
     // Also copy to package root for immediate use
-    await _copyDirectory(frameworkSrc, Directory(p.join(packageRoot, 'llamacpp.framework')));
+    await _copyDirectory(
+        frameworkSrc, Directory(p.join(packageRoot, 'llamacpp.framework')));
   }
 
   print('✅ macOS build complete!');
@@ -144,8 +157,10 @@ Future<void> _buildLinux(String packageRoot) async {
   // Check for CUDA
   final hasCuda = await _commandExists('nvcc');
   final cmakeArgs = <String>[
-    '-B', buildDir,
-    '-S', nativeDir,
+    '-B',
+    buildDir,
+    '-S',
+    nativeDir,
     '-DCMAKE_BUILD_TYPE=Release',
     '-DLLAMA_BUILD_TESTS=OFF',
     '-DLLAMA_BUILD_EXAMPLES=OFF',
@@ -159,7 +174,8 @@ Future<void> _buildLinux(String packageRoot) async {
   }
 
   print('⚙️  Configuring CMake...');
-  var result = await _runCommand('cmake', cmakeArgs, workingDirectory: packageRoot);
+  var result =
+      await _runCommand('cmake', cmakeArgs, workingDirectory: packageRoot);
 
   if (result != 0) {
     print('❌ CMake configure failed');
@@ -169,7 +185,14 @@ Future<void> _buildLinux(String packageRoot) async {
   print('🔧 Building native library...');
   result = await _runCommand(
     'cmake',
-    ['--build', buildDir, '--config', 'Release', '-j', '${Platform.numberOfProcessors}'],
+    [
+      '--build',
+      buildDir,
+      '--config',
+      'Release',
+      '-j',
+      '${Platform.numberOfProcessors}'
+    ],
     workingDirectory: packageRoot,
   );
 
@@ -204,8 +227,10 @@ Future<void> _buildWindows(String packageRoot) async {
   var result = await _runCommand(
     'cmake',
     [
-      '-B', buildDir,
-      '-S', nativeDir,
+      '-B',
+      buildDir,
+      '-S',
+      nativeDir,
       '-DCMAKE_BUILD_TYPE=Release',
       '-DLLAMA_BUILD_TESTS=OFF',
       '-DLLAMA_BUILD_EXAMPLES=OFF',

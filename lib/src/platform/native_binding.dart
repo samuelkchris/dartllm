@@ -12,14 +12,13 @@ import 'package:dartllm/src/utils/logger.dart';
 import 'package:ffi/ffi.dart';
 
 /// Native callback type for streaming token generation.
-typedef StreamCallbackNative =
-    Int32 Function(
-      Int32 token,
-      Pointer<Utf8> text,
-      Int8 isFinal,
-      Int32 finishReason,
-      Pointer<Void> userData,
-    );
+typedef StreamCallbackNative = Int32 Function(
+  Int32 token,
+  Pointer<Utf8> text,
+  Int8 isFinal,
+  Int32 finishReason,
+  Pointer<Void> userData,
+);
 
 /// Platform binding implementation using Dart FFI.
 ///

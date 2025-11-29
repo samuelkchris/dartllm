@@ -25,7 +25,8 @@ void main() {
       test('formats gigabytes correctly', () {
         expect(MemoryUtils.formatBytes(1024 * 1024 * 1024), equals('1.0 GB'));
         expect(MemoryUtils.formatBytes(4200000000), equals('3.9 GB'));
-        expect(MemoryUtils.formatBytes(8 * 1024 * 1024 * 1024), equals('8.0 GB'));
+        expect(
+            MemoryUtils.formatBytes(8 * 1024 * 1024 * 1024), equals('8.0 GB'));
       });
 
       test('respects decimal places parameter', () {
@@ -56,7 +57,8 @@ void main() {
       test('bytesToMB converts correctly', () {
         expect(MemoryUtils.bytesToMB(1024 * 1024), equals(1));
         expect(MemoryUtils.bytesToMB(512 * 1024 * 1024), equals(512));
-        expect(MemoryUtils.bytesToMB(1024 * 1024 + 500), equals(1)); // Truncated
+        expect(
+            MemoryUtils.bytesToMB(1024 * 1024 + 500), equals(1)); // Truncated
       });
 
       test('bytesToGB converts correctly', () {
@@ -199,7 +201,8 @@ void main() {
     group('getBitsPerWeight', () {
       test('returns bits for known quantization', () {
         expect(MemoryUtils.getBitsPerWeight('Q4_K_M'), equals(4.5));
-        expect(MemoryUtils.getBitsPerWeight('q4_k_m'), equals(4.5)); // Case insensitive
+        expect(MemoryUtils.getBitsPerWeight('q4_k_m'),
+            equals(4.5)); // Case insensitive
       });
 
       test('returns null for unknown quantization', () {

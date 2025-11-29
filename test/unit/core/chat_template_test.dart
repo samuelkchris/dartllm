@@ -422,10 +422,13 @@ void main() {
       test('returns correct template by name', () {
         expect(ChatTemplateFactory.byName('chatml'), isA<ChatMLTemplate>());
         expect(ChatTemplateFactory.byName('llama2'), isA<Llama2ChatTemplate>());
-        expect(ChatTemplateFactory.byName('llama3'), isA<Llama3InstructTemplate>());
-        expect(ChatTemplateFactory.byName('mistral'), isA<MistralInstructTemplate>());
+        expect(ChatTemplateFactory.byName('llama3'),
+            isA<Llama3InstructTemplate>());
+        expect(ChatTemplateFactory.byName('mistral'),
+            isA<MistralInstructTemplate>());
         expect(ChatTemplateFactory.byName('phi3'), isA<Phi3Template>());
-        expect(ChatTemplateFactory.byName('gemma'), isA<GemmaInstructTemplate>());
+        expect(
+            ChatTemplateFactory.byName('gemma'), isA<GemmaInstructTemplate>());
         expect(ChatTemplateFactory.byName('alpaca'), isA<AlpacaTemplate>());
         expect(ChatTemplateFactory.byName('vicuna'), isA<VicunaTemplate>());
         expect(ChatTemplateFactory.byName('commandr'), isA<CommandRTemplate>());

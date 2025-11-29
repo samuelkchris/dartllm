@@ -78,14 +78,16 @@ class LibraryLoader {
     // 3. Current working directory and subdirectories
     final cwd = Directory.current.path;
     paths.add(p.join(cwd, libName));
-    paths.add(p.join(cwd, 'native', 'build', _getPlatformDirectoryName(), libName));
+    paths.add(
+        p.join(cwd, 'native', 'build', _getPlatformDirectoryName(), libName));
     paths.add(p.join(cwd, 'blobs', _getPlatformDirectoryName(), libName));
 
     // 4. Relative to script (for development)
     if (Platform.script.scheme == 'file') {
       final scriptDir = p.dirname(Platform.script.toFilePath());
       paths.add(p.join(scriptDir, libName));
-      paths.add(p.join(scriptDir, '..', 'blobs', _getPlatformDirectoryName(), libName));
+      paths.add(p.join(
+          scriptDir, '..', 'blobs', _getPlatformDirectoryName(), libName));
     }
 
     // 5. macOS Framework location
@@ -93,8 +95,10 @@ class LibraryLoader {
       paths.add(p.join(cwd, 'llamacpp.framework', 'llamacpp'));
       paths.add(p.join(execDir, 'llamacpp.framework', 'llamacpp'));
       if (packageRoot != null) {
-        paths.add(p.join(packageRoot, 'blobs', 'macos', 'llamacpp.framework', 'llamacpp'));
-        paths.add(p.join(packageRoot, 'native', 'build', 'macos', 'llamacpp.framework', 'llamacpp'));
+        paths.add(p.join(
+            packageRoot, 'blobs', 'macos', 'llamacpp.framework', 'llamacpp'));
+        paths.add(p.join(packageRoot, 'native', 'build', 'macos',
+            'llamacpp.framework', 'llamacpp'));
       }
     }
 

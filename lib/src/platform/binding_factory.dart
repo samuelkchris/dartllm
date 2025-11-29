@@ -55,7 +55,8 @@ abstract final class BindingFactory {
 
     try {
       final platform = PlatformUtils.current;
-      _logger.info('Creating binding for platform: ${PlatformUtils.platformName}');
+      _logger
+          .info('Creating binding for platform: ${PlatformUtils.platformName}');
 
       if (!PlatformUtils.isSupported) {
         throw UnsupportedPlatformException(PlatformUtils.platformName);
@@ -66,7 +67,8 @@ abstract final class BindingFactory {
       }
 
       final binding = platform_impl.createPlatformBinding();
-      final initialized = await platform_impl.initializePlatformBinding(binding);
+      final initialized =
+          await platform_impl.initializePlatformBinding(binding);
 
       if (!initialized) {
         throw LLMPlatformException(

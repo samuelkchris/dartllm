@@ -61,8 +61,8 @@ class DartLLM {
   /// Gets or creates the model cache.
   static Future<ModelCache> _getCache() async {
     if (_modelCache == null) {
-      final cacheDir = _globalConfig.defaultCacheDirectory ??
-          PathUtils.defaultModelCacheDir;
+      final cacheDir =
+          _globalConfig.defaultCacheDirectory ?? PathUtils.defaultModelCacheDir;
       _modelCache = ModelCache(cacheDirectory: cacheDir);
       await _modelCache!.initialize();
     }

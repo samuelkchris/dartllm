@@ -188,7 +188,8 @@ class InferenceEngine {
     );
 
     // Select chat template based on architecture
-    _chatTemplate = ChatTemplateFactory.forArchitecture(_modelInfo!.architecture);
+    _chatTemplate =
+        ChatTemplateFactory.forArchitecture(_modelInfo!.architecture);
 
     // Create context
     final contextSize = effectiveConfig.contextSize ?? _modelInfo!.contextSize;
@@ -241,7 +242,8 @@ class InferenceEngine {
 
     _logger.debug('Generating from prompt, length: ${prompt.length}');
 
-    final promptTokens = await _tokenizer!.encode(prompt, addSpecialTokens: true);
+    final promptTokens =
+        await _tokenizer!.encode(prompt, addSpecialTokens: true);
 
     final request = _createGenerateRequest(promptTokens, config);
 
@@ -274,7 +276,8 @@ class InferenceEngine {
 
     _logger.debug('Streaming generation from prompt, length: ${prompt.length}');
 
-    final promptTokens = await _tokenizer!.encode(prompt, addSpecialTokens: true);
+    final promptTokens =
+        await _tokenizer!.encode(prompt, addSpecialTokens: true);
 
     final request = _createGenerateRequest(promptTokens, config);
 
@@ -307,10 +310,12 @@ class InferenceEngine {
     final prompt = _chatTemplate!.apply(messages, addGenerationPrompt: true);
 
     // Tokenize (without adding special tokens since template handles them)
-    final promptTokens = await _tokenizer!.encode(prompt, addSpecialTokens: false);
+    final promptTokens =
+        await _tokenizer!.encode(prompt, addSpecialTokens: false);
 
     // Add stop sequences from template to config
-    final effectiveConfig = _mergeStopSequences(config, _chatTemplate!.stopSequences);
+    final effectiveConfig =
+        _mergeStopSequences(config, _chatTemplate!.stopSequences);
 
     // Create generation request
     final request = _createGenerateRequest(promptTokens, effectiveConfig);
@@ -351,10 +356,12 @@ class InferenceEngine {
     final prompt = _chatTemplate!.apply(messages, addGenerationPrompt: true);
 
     // Tokenize
-    final promptTokens = await _tokenizer!.encode(prompt, addSpecialTokens: false);
+    final promptTokens =
+        await _tokenizer!.encode(prompt, addSpecialTokens: false);
 
     // Add stop sequences from template
-    final effectiveConfig = _mergeStopSequences(config, _chatTemplate!.stopSequences);
+    final effectiveConfig =
+        _mergeStopSequences(config, _chatTemplate!.stopSequences);
 
     // Create generation request
     final request = _createGenerateRequest(promptTokens, effectiveConfig);

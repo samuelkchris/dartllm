@@ -158,10 +158,12 @@ void main() {
       );
 
       expect(info.modelId, equals('llama-2-7b-chat-q4'));
-      expect(info.filePath, equals('/cache/models/llama-2-7b-chat.Q4_K_M.gguf'));
+      expect(
+          info.filePath, equals('/cache/models/llama-2-7b-chat.Q4_K_M.gguf'));
       expect(info.sizeBytes, equals(4200000000));
       expect(info.downloadedAt, equals(downloadedAt));
-      expect(info.sourceUrl, equals('https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF'));
+      expect(info.sourceUrl,
+          equals('https://huggingface.co/TheBloke/Llama-2-7B-Chat-GGUF'));
       expect(info.modelInfo, isNull);
     });
 

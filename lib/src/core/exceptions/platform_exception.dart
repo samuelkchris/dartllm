@@ -52,9 +52,9 @@ class UnsupportedPlatformException extends LLMPlatformException {
     this.minimumVersion,
     Object? cause,
   }) : super(
-         _formatMessage(platform, platformVersion, minimumVersion),
-         cause: cause,
-       );
+          _formatMessage(platform, platformVersion, minimumVersion),
+          cause: cause,
+        );
 
   static String _formatMessage(
     String platform,
@@ -150,7 +150,7 @@ class PermissionException extends LLMPlatformException {
   /// The [permissionType] identifies what permission is needed.
   /// Optionally provide [resource] to identify what could not be accessed.
   PermissionException(this.permissionType, {this.resource, Object? cause})
-    : super(_formatMessage(permissionType, resource), cause: cause);
+      : super(_formatMessage(permissionType, resource), cause: cause);
 
   static String _formatMessage(String permission, String? resource) {
     if (resource != null) {

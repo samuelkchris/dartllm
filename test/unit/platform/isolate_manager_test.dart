@@ -84,13 +84,17 @@ void main() {
     test('contains all expected types', () {
       expect(IsolateRequestType.values, hasLength(9));
       expect(IsolateRequestType.values, contains(IsolateRequestType.loadModel));
-      expect(IsolateRequestType.values, contains(IsolateRequestType.unloadModel));
+      expect(
+          IsolateRequestType.values, contains(IsolateRequestType.unloadModel));
       expect(IsolateRequestType.values, contains(IsolateRequestType.generate));
-      expect(IsolateRequestType.values, contains(IsolateRequestType.generateStream));
+      expect(IsolateRequestType.values,
+          contains(IsolateRequestType.generateStream));
       expect(IsolateRequestType.values, contains(IsolateRequestType.embed));
       expect(IsolateRequestType.values, contains(IsolateRequestType.tokenize));
-      expect(IsolateRequestType.values, contains(IsolateRequestType.detokenize));
-      expect(IsolateRequestType.values, contains(IsolateRequestType.getModelInfo));
+      expect(
+          IsolateRequestType.values, contains(IsolateRequestType.detokenize));
+      expect(
+          IsolateRequestType.values, contains(IsolateRequestType.getModelInfo));
       expect(IsolateRequestType.values, contains(IsolateRequestType.shutdown));
     });
   });

@@ -400,9 +400,8 @@ class WasmBinding implements PlatformBinding {
 
     final tokensJs = Int32List.fromList(request.tokens).toJS;
 
-    final textJs = await _module!
-        .detokenize(request.modelHandle.toJS, tokensJs)
-        .toDart;
+    final textJs =
+        await _module!.detokenize(request.modelHandle.toJS, tokensJs).toDart;
 
     return textJs.toDart;
   }

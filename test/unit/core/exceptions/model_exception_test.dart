@@ -44,7 +44,8 @@ void main() {
       const exception = ModelNotFoundException('/path/to/model.gguf');
       expect(
         exception.toString(),
-        equals('ModelNotFoundException: Model not found at "/path/to/model.gguf"'),
+        equals(
+            'ModelNotFoundException: Model not found at "/path/to/model.gguf"'),
       );
     });
 

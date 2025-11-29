@@ -48,7 +48,8 @@ void main() {
         expect(modified.enableLogging, isTrue);
         expect(modified.logLevel, equals(LogLevel.info));
         expect(modified.defaultGpuLayers, equals(original.defaultGpuLayers));
-        expect(modified.defaultThreadCount, equals(original.defaultThreadCount));
+        expect(
+            modified.defaultThreadCount, equals(original.defaultThreadCount));
       });
     });
 
