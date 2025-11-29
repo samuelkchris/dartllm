@@ -1,132 +1,17 @@
 import 'dart:async';
 import 'dart:ffi';
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dartllm/src/core/exceptions/exceptions.dart';
 import 'package:dartllm/src/models/enums.dart';
 import 'package:dartllm/src/models/model_info.dart';
+import 'package:dartllm/src/platform/generated_bindings.dart';
+import 'package:dartllm/src/platform/library_loader.dart';
 import 'package:dartllm/src/platform/platform_binding.dart';
 import 'package:dartllm/src/utils/logger.dart';
-import 'package:dartllm/src/utils/platform_utils.dart';
 import 'package:ffi/ffi.dart';
 
-/// FFI function signatures for llama.cpp bindings.
-///
-/// These typedefs define the C function signatures that will be
-/// loaded from the native library.
-
-/// Native function: Initialize the llama.cpp library.
-typedef LlamaInitNative = Int32 Function();
-typedef LlamaInitDart = int Function();
-
-/// Native function: Load a model from file path.
-typedef LlamaLoadModelNative =
-    Pointer<Void> Function(
-      Pointer<Utf8> path,
-      Int32 contextSize,
-      Int32 gpuLayers,
-      Int32 threads,
-      Int32 batchSize,
-      Int8 useMemoryMap,
-    );
-typedef LlamaLoadModelDart =
-    Pointer<Void> Function(
-      Pointer<Utf8> path,
-      int contextSize,
-      int gpuLayers,
-      int threads,
-      int batchSize,
-      int useMemoryMap,
-    );
-
-/// Native function: Free a loaded model.
-typedef LlamaFreeModelNative = Void Function(Pointer<Void> model);
-typedef LlamaFreeModelDart = void Function(Pointer<Void> model);
-
-/// Native function: Get model metadata.
-typedef LlamaGetModelInfoNative = Pointer<Void> Function(Pointer<Void> model);
-typedef LlamaGetModelInfoDart = Pointer<Void> Function(Pointer<Void> model);
-
-/// Native function: Tokenize text.
-typedef LlamaTokenizeNative =
-    Pointer<Int32> Function(
-      Pointer<Void> model,
-      Pointer<Utf8> text,
-      Int8 addSpecial,
-      Pointer<Int32> outLength,
-    );
-typedef LlamaTokenizeDart =
-    Pointer<Int32> Function(
-      Pointer<Void> model,
-      Pointer<Utf8> text,
-      int addSpecial,
-      Pointer<Int32> outLength,
-    );
-
-/// Native function: Detokenize tokens to text.
-typedef LlamaDetokenizeNative =
-    Pointer<Utf8> Function(
-      Pointer<Void> model,
-      Pointer<Int32> tokens,
-      Int32 tokenCount,
-    );
-typedef LlamaDetokenizeDart =
-    Pointer<Utf8> Function(
-      Pointer<Void> model,
-      Pointer<Int32> tokens,
-      int tokenCount,
-    );
-
-/// Native function: Generate tokens.
-typedef LlamaGenerateNative =
-    Pointer<Void> Function(
-      Pointer<Void> model,
-      Pointer<Int32> promptTokens,
-      Int32 promptLength,
-      Int32 maxTokens,
-      Float temperature,
-      Float topP,
-      Int32 topK,
-      Float minP,
-      Float repetitionPenalty,
-      Int32 seed,
-    );
-typedef LlamaGenerateDart =
-    Pointer<Void> Function(
-      Pointer<Void> model,
-      Pointer<Int32> promptTokens,
-      int promptLength,
-      int maxTokens,
-      double temperature,
-      double topP,
-      int topK,
-      double minP,
-      double repetitionPenalty,
-      int seed,
-    );
-
-/// Native function: Generate embeddings.
-typedef LlamaEmbedNative =
-    Pointer<Float> Function(
-      Pointer<Void> model,
-      Pointer<Int32> tokens,
-      Int32 tokenCount,
-      Int8 normalize,
-      Pointer<Int32> outDimension,
-    );
-typedef LlamaEmbedDart =
-    Pointer<Float> Function(
-      Pointer<Void> model,
-      Pointer<Int32> tokens,
-      int tokenCount,
-      int normalize,
-      Pointer<Int32> outDimension,
-    );
-
 /// Native callback type for streaming token generation.
-/// int32_t callback(int32_t token, const char* text, int8_t is_final,
-///                  int32_t finish_reason, void* user_data)
 typedef StreamCallbackNative =
     Int32 Function(
       Int32 token,
@@ -136,109 +21,11 @@ typedef StreamCallbackNative =
       Pointer<Void> userData,
     );
 
-/// Native function: Generate tokens with streaming callback.
-typedef LlamaGenerateStreamNative =
-    Int32 Function(
-      Pointer<Void> model,
-      Pointer<Int32> promptTokens,
-      Int32 promptLength,
-      Int32 maxTokens,
-      Float temperature,
-      Float topP,
-      Int32 topK,
-      Float minP,
-      Float repetitionPenalty,
-      Int32 seed,
-      Pointer<NativeFunction<StreamCallbackNative>> callback,
-      Pointer<Void> userData,
-    );
-typedef LlamaGenerateStreamDart =
-    int Function(
-      Pointer<Void> model,
-      Pointer<Int32> promptTokens,
-      int promptLength,
-      int maxTokens,
-      double temperature,
-      double topP,
-      int topK,
-      double minP,
-      double repetitionPenalty,
-      int seed,
-      Pointer<NativeFunction<StreamCallbackNative>> callback,
-      Pointer<Void> userData,
-    );
-
-/// Native function: Free allocated memory.
-typedef LlamaFreeNative = Void Function(Pointer<Void> ptr);
-typedef LlamaFreeDart = void Function(Pointer<Void> ptr);
-
-/// Native function: Check GPU support.
-typedef LlamaHasGpuSupportNative = Int8 Function();
-typedef LlamaHasGpuSupportDart = int Function();
-
-/// Native struct for model information.
-///
-/// This struct matches the layout of DartLLMModelInfo in dartllm.h.
-/// Fixed-size char arrays are used for strings to ensure ABI compatibility.
-final class DartLLMModelInfoStruct extends Struct {
-  /// Model name (null-terminated, max 256 chars).
-  @Array(256)
-  external Array<Uint8> name;
-
-  /// Number of parameters in the model.
-  @Int64()
-  external int parameterCount;
-
-  /// Model architecture name (null-terminated, max 64 chars).
-  @Array(64)
-  external Array<Uint8> architecture;
-
-  /// Quantization format (null-terminated, max 32 chars).
-  @Array(32)
-  external Array<Uint8> quantization;
-
-  /// Maximum context size in tokens.
-  @Int32()
-  external int contextSize;
-
-  /// Vocabulary size.
-  @Int32()
-  external int vocabularySize;
-
-  /// Embedding dimension.
-  @Int32()
-  external int embeddingSize;
-
-  /// Number of transformer layers.
-  @Int32()
-  external int layerCount;
-
-  /// Number of attention heads.
-  @Int32()
-  external int headCount;
-
-  /// File size in bytes.
-  @Int64()
-  external int fileSizeBytes;
-
-  /// Whether model supports embeddings (0 or 1).
-  @Int8()
-  external int supportsEmbedding;
-
-  /// Whether model supports vision (0 or 1).
-  @Int8()
-  external int supportsVision;
-
-  /// Chat template string (null-terminated, max 4096 chars).
-  @Array(4096)
-  external Array<Uint8> chatTemplate;
-}
-
 /// Platform binding implementation using Dart FFI.
 ///
 /// This binding communicates with the native llama.cpp library
-/// through the C ABI. It handles memory management, type conversion,
-/// and error propagation across the FFI boundary.
+/// through the C ABI. It uses auto-generated bindings from ffigen
+/// and provides a high-level interface implementing [PlatformBinding].
 ///
 /// The native library must be bundled with the application:
 /// - Android: `libllamacpp.so` in jniLibs
@@ -250,27 +37,17 @@ class NativeBinding implements PlatformBinding {
 
   final DartLLMLogger _logger = DartLLMLogger(_loggerName);
 
-  /// The loaded dynamic library, or null if not available.
+  /// The loaded dynamic library.
   DynamicLibrary? _library;
+
+  /// The auto-generated bindings wrapper.
+  DartLLMBindings? _bindings;
 
   /// Whether the native library was successfully loaded.
   bool _isInitialized = false;
 
   /// Whether this binding has been disposed.
   bool _isDisposed = false;
-
-  /// Cached FFI function pointers.
-  LlamaInitDart? _llamaInit;
-  LlamaLoadModelDart? _llamaLoadModel;
-  LlamaFreeModelDart? _llamaFreeModel;
-  LlamaGetModelInfoDart? _llamaGetModelInfo;
-  LlamaTokenizeDart? _llamaTokenize;
-  LlamaDetokenizeDart? _llamaDetokenize;
-  LlamaGenerateDart? _llamaGenerate;
-  LlamaGenerateStreamDart? _llamaGenerateStream;
-  LlamaEmbedDart? _llamaEmbed;
-  LlamaFreeDart? _llamaFree;
-  LlamaHasGpuSupportDart? _llamaHasGpuSupport;
 
   /// Map of active model handles to their native pointers.
   final Map<ModelHandle, Pointer<Void>> _modelPointers = {};
@@ -299,9 +76,9 @@ class NativeBinding implements PlatformBinding {
 
     try {
       _library = _loadLibrary();
-      _bindFunctions();
+      _bindings = DartLLMBindings(_library!);
 
-      final initResult = _llamaInit!();
+      final initResult = _bindings!.dartllm_init();
       if (initResult != 0) {
         _logger.error('Failed to initialize llama.cpp: error code $initResult');
         return false;
@@ -319,85 +96,18 @@ class NativeBinding implements PlatformBinding {
     }
   }
 
-  /// Loads the platform-appropriate dynamic library.
+  /// Loads the native library using the smart library loader.
   DynamicLibrary _loadLibrary() {
-    final libraryName = _getLibraryName();
-    _logger.debug('Loading native library: $libraryName');
-    return DynamicLibrary.open(libraryName);
-  }
-
-  /// Gets the library filename for the current platform.
-  String _getLibraryName() {
-    switch (PlatformUtils.current) {
-      case DartLLMPlatform.android:
-        return 'libllamacpp.so';
-      case DartLLMPlatform.ios:
-      case DartLLMPlatform.macos:
-        return 'llamacpp.framework/llamacpp';
-      case DartLLMPlatform.windows:
-        return 'llamacpp.dll';
-      case DartLLMPlatform.linux:
-        return 'libllamacpp.so';
-      case DartLLMPlatform.web:
-        throw UnsupportedPlatformException('Web');
-      case DartLLMPlatform.unknown:
-        throw UnsupportedPlatformException(Platform.operatingSystem);
+    _logger.debug('Loading native library...');
+    try {
+      final library = LibraryLoader.load();
+      _logger.debug('Native library loaded successfully');
+      return library;
+    } on LibraryLoadException catch (e) {
+      _logger.error('Failed to load native library: ${e.message}');
+      _logger.debug('Searched paths: ${LibraryLoader.getSearchedPaths()}');
+      rethrow;
     }
-  }
-
-  /// Binds all FFI function pointers from the loaded library.
-  void _bindFunctions() {
-    final library = _library!;
-
-    _llamaInit = library
-        .lookup<NativeFunction<LlamaInitNative>>('dartllm_init')
-        .asFunction<LlamaInitDart>();
-
-    _llamaLoadModel = library
-        .lookup<NativeFunction<LlamaLoadModelNative>>('dartllm_load_model')
-        .asFunction<LlamaLoadModelDart>();
-
-    _llamaFreeModel = library
-        .lookup<NativeFunction<LlamaFreeModelNative>>('dartllm_free_model')
-        .asFunction<LlamaFreeModelDart>();
-
-    _llamaGetModelInfo = library
-        .lookup<NativeFunction<LlamaGetModelInfoNative>>(
-          'dartllm_get_model_info',
-        )
-        .asFunction<LlamaGetModelInfoDart>();
-
-    _llamaTokenize = library
-        .lookup<NativeFunction<LlamaTokenizeNative>>('dartllm_tokenize')
-        .asFunction<LlamaTokenizeDart>();
-
-    _llamaDetokenize = library
-        .lookup<NativeFunction<LlamaDetokenizeNative>>('dartllm_detokenize')
-        .asFunction<LlamaDetokenizeDart>();
-
-    _llamaGenerate = library
-        .lookup<NativeFunction<LlamaGenerateNative>>('dartllm_generate')
-        .asFunction<LlamaGenerateDart>();
-
-    _llamaGenerateStream = library
-        .lookup<NativeFunction<LlamaGenerateStreamNative>>(
-          'dartllm_generate_stream',
-        )
-        .asFunction<LlamaGenerateStreamDart>();
-
-    _llamaEmbed = library
-        .lookup<NativeFunction<LlamaEmbedNative>>('dartllm_embed')
-        .asFunction<LlamaEmbedDart>();
-
-    _llamaFree = library
-        .lookup<NativeFunction<LlamaFreeNative>>('dartllm_free')
-        .asFunction<LlamaFreeDart>();
-
-    _llamaHasGpuSupport = library
-        .lookup<NativeFunction<LlamaHasGpuSupportNative>>(
-          'dartllm_has_gpu_support',
-        )
-        .asFunction<LlamaHasGpuSupportDart>();
   }
 
   /// Checks that the binding is initialized and not disposed.
@@ -419,11 +129,56 @@ class NativeBinding implements PlatformBinding {
   @override
   bool get supportsGpu {
     if (!isAvailable) return false;
-    return _llamaHasGpuSupport!() != 0;
+    return _bindings!.dartllm_has_gpu_support() != 0;
   }
 
   @override
   bool get supportsMultiThreading => isAvailable;
+
+  /// Gets the DartLLM library version.
+  String get version {
+    if (!isAvailable) return 'unknown';
+    final ptr = _bindings!.dartllm_version();
+    if (ptr == nullptr) return 'unknown';
+    return ptr.cast<Utf8>().toDartString();
+  }
+
+  /// Gets the llama.cpp backend version.
+  String get llamaVersion {
+    if (!isAvailable) return 'unknown';
+    final ptr = _bindings!.dartllm_llama_version();
+    if (ptr == nullptr) return 'unknown';
+    return ptr.cast<Utf8>().toDartString();
+  }
+
+  /// Gets the active GPU backend name.
+  String get gpuBackendName {
+    if (!isAvailable) return 'cpu';
+    final ptr = _bindings!.dartllm_gpu_backend_name();
+    if (ptr == nullptr) return 'cpu';
+    return ptr.cast<Utf8>().toDartString();
+  }
+
+  /// Gets the available VRAM in bytes.
+  int get vramSize {
+    if (!isAvailable) return 0;
+    return _bindings!.dartllm_get_vram_size();
+  }
+
+  /// Gets the last error message from native code, or null if no error.
+  String? get lastError {
+    if (!isAvailable) return null;
+    final ptr = _bindings!.dartllm_get_last_error();
+    if (ptr == nullptr) return null;
+    return ptr.cast<Utf8>().toDartString();
+  }
+
+  /// Clears the last error in native code.
+  void clearError() {
+    if (isAvailable) {
+      _bindings!.dartllm_clear_error();
+    }
+  }
 
   @override
   Future<LoadModelResult> loadModel(LoadModelRequest request) async {
@@ -432,8 +187,8 @@ class NativeBinding implements PlatformBinding {
     final pathPointer = request.modelPath.toNativeUtf8();
 
     try {
-      final modelPointer = _llamaLoadModel!(
-        pathPointer,
+      final modelPointer = _bindings!.dartllm_load_model(
+        pathPointer.cast(),
         request.config.contextSize ?? 0,
         request.config.gpuLayers,
         request.config.threads,
@@ -468,7 +223,7 @@ class NativeBinding implements PlatformBinding {
       return;
     }
 
-    _llamaFreeModel!(pointer);
+    _bindings!.dartllm_free_model(pointer);
     _logger.info('Model unloaded: handle $handle');
   }
 
@@ -489,7 +244,7 @@ class NativeBinding implements PlatformBinding {
         promptPointer[i] = request.promptTokens[i];
       }
 
-      final resultPointer = _llamaGenerate!(
+      final resultPointer = _bindings!.dartllm_generate(
         pointer,
         promptPointer,
         request.promptTokens.length,
@@ -507,7 +262,7 @@ class NativeBinding implements PlatformBinding {
       }
 
       try {
-        final result = _parseGenerateResult(resultPointer);
+        final result = _parseGenerateResult(resultPointer.cast());
         final endTime = DateTime.now();
         final generationTimeMs = endTime.difference(startTime).inMilliseconds;
 
@@ -519,7 +274,7 @@ class NativeBinding implements PlatformBinding {
           generationTimeMs: generationTimeMs,
         );
       } finally {
-        _llamaFree!(resultPointer);
+        _bindings!.dartllm_free(resultPointer.cast());
       }
     } finally {
       calloc.free(promptPointer);
@@ -602,7 +357,7 @@ class NativeBinding implements PlatformBinding {
 
     Future<void>.microtask(() async {
       try {
-        final result = _llamaGenerateStream!(
+        final result = _bindings!.dartllm_generate_stream(
           pointer,
           tokensPointer,
           request.promptTokens.length,
@@ -613,7 +368,7 @@ class NativeBinding implements PlatformBinding {
           request.minP,
           request.repetitionPenalty,
           request.seed ?? -1,
-          nativeCallback.nativeFunction,
+          nativeCallback.nativeFunction.cast(),
           nullptr,
         );
 
@@ -649,7 +404,7 @@ class NativeBinding implements PlatformBinding {
         tokensPointer[i] = request.tokens[i];
       }
 
-      final embeddingPointer = _llamaEmbed!(
+      final embeddingPointer = _bindings!.dartllm_embed(
         pointer,
         tokensPointer,
         request.tokens.length,
@@ -671,7 +426,7 @@ class NativeBinding implements PlatformBinding {
 
         return EmbedResult(embedding: embedding);
       } finally {
-        _llamaFree!(embeddingPointer.cast<Void>());
+        _bindings!.dartllm_free(embeddingPointer.cast());
       }
     } finally {
       calloc.free(tokensPointer);
@@ -692,9 +447,9 @@ class NativeBinding implements PlatformBinding {
     final lengthPointer = calloc<Int32>(1);
 
     try {
-      final tokensPointer = _llamaTokenize!(
+      final tokensPointer = _bindings!.dartllm_tokenize(
         pointer,
-        textPointer,
+        textPointer.cast(),
         request.addSpecialTokens ? 1 : 0,
         lengthPointer,
       );
@@ -716,7 +471,7 @@ class NativeBinding implements PlatformBinding {
 
         return tokens;
       } finally {
-        _llamaFree!(tokensPointer.cast<Void>());
+        _bindings!.dartllm_free(tokensPointer.cast());
       }
     } finally {
       calloc.free(textPointer);
@@ -740,7 +495,7 @@ class NativeBinding implements PlatformBinding {
         tokensPointer[i] = request.tokens[i];
       }
 
-      final textPointer = _llamaDetokenize!(
+      final textPointer = _bindings!.dartllm_detokenize(
         pointer,
         tokensPointer,
         request.tokens.length,
@@ -754,9 +509,9 @@ class NativeBinding implements PlatformBinding {
       }
 
       try {
-        return textPointer.toDartString();
+        return textPointer.cast<Utf8>().toDartString();
       } finally {
-        _llamaFree!(textPointer.cast<Void>());
+        _bindings!.dartllm_free(textPointer.cast());
       }
     } finally {
       calloc.free(tokensPointer);
@@ -772,7 +527,7 @@ class NativeBinding implements PlatformBinding {
       throw StateError('Invalid model handle: $handle');
     }
 
-    final infoPointer = _llamaGetModelInfo!(pointer);
+    final infoPointer = _bindings!.dartllm_get_model_info(pointer);
     if (infoPointer == nullptr) {
       throw InvalidModelException(
         'handle:$handle',
@@ -783,33 +538,33 @@ class NativeBinding implements PlatformBinding {
     try {
       return _parseModelInfo(infoPointer);
     } finally {
-      _llamaFree!(infoPointer);
+      _bindings!.dartllm_free(infoPointer.cast());
     }
   }
 
-  /// Parses the native model info structure.
-  ModelInfo _parseModelInfo(Pointer<Void> infoPointer) {
-    final info = infoPointer.cast<DartLLMModelInfoStruct>().ref;
+  /// Parses the native model info structure using generated bindings.
+  ModelInfo _parseModelInfo(Pointer<DartLLMModelInfo> infoPointer) {
+    final info = infoPointer.ref;
 
     return ModelInfo(
-      name: _arrayToString(info.name, 256),
-      parameterCount: info.parameterCount,
-      architecture: _arrayToString(info.architecture, 64),
-      quantization: _arrayToString(info.quantization, 32),
-      contextSize: info.contextSize,
-      vocabularySize: info.vocabularySize,
-      embeddingSize: info.embeddingSize,
-      layerCount: info.layerCount,
-      headCount: info.headCount,
-      fileSizeBytes: info.fileSizeBytes,
-      supportsEmbedding: info.supportsEmbedding != 0,
-      supportsVision: info.supportsVision != 0,
-      chatTemplate: _arrayToString(info.chatTemplate, 4096),
+      name: _charArrayToString(info.name, 256),
+      parameterCount: info.parameter_count,
+      architecture: _charArrayToString(info.architecture, 64),
+      quantization: _charArrayToString(info.quantization, 32),
+      contextSize: info.context_size,
+      vocabularySize: info.vocabulary_size,
+      embeddingSize: info.embedding_size,
+      layerCount: info.layer_count,
+      headCount: info.head_count,
+      fileSizeBytes: info.file_size_bytes,
+      supportsEmbedding: info.supports_embedding != 0,
+      supportsVision: info.supports_vision != 0,
+      chatTemplate: _charArrayToString(info.chat_template, 4096),
     );
   }
 
   /// Converts a fixed-size char array to a Dart string.
-  String _arrayToString(Array<Uint8> array, int maxLength) {
+  String _charArrayToString(Array<Char> array, int maxLength) {
     final bytes = <int>[];
     for (var i = 0; i < maxLength; i++) {
       final byte = array[i];
@@ -826,10 +581,11 @@ class NativeBinding implements PlatformBinding {
 
     // Unload all models
     for (final pointer in _modelPointers.values) {
-      _llamaFreeModel?.call(pointer);
+      _bindings?.dartllm_free_model(pointer);
     }
     _modelPointers.clear();
 
+    _bindings = null;
     _library = null;
     _isInitialized = false;
 

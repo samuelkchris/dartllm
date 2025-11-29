@@ -5,6 +5,7 @@
 
 #include "dartllm.h"
 #include "llama.h"
+#include "ggml.h"
 
 #include <cstring>
 #include <cmath>
@@ -25,6 +26,7 @@ struct ModelContext {
     llama_model* model = nullptr;
     llama_context* ctx = nullptr;
     llama_sampler* sampler = nullptr;
+    const llama_vocab* vocab = nullptr;
     std::string model_path;
     int32_t context_size = 0;
     int32_t n_threads = 0;
@@ -37,7 +39,7 @@ struct ModelContext {
             llama_free(ctx);
         }
         if (model) {
-            llama_free_model(model);
+            llama_model_free(model);
         }
     }
 };
@@ -74,7 +76,7 @@ DARTLLM_API int32_t dartllm_init(void) {
         return 0;
     }
 
-    llama_backend_init();
+    ggml_backend_load_all();
     g_initialized = true;
     clear_error();
 
@@ -116,13 +118,15 @@ DARTLLM_API void* dartllm_load_model(
     model_params.n_gpu_layers = (gpu_layers < 0) ? 999 : gpu_layers;
     model_params.use_mmap = use_mmap != 0;
 
-    model_ctx->model = llama_load_model_from_file(path, model_params);
+    model_ctx->model = llama_model_load_from_file(path, model_params);
     if (!model_ctx->model) {
         set_error("Failed to load model from: " + std::string(path));
         return nullptr;
     }
 
-    int32_t model_ctx_size = llama_n_ctx_train(model_ctx->model);
+    model_ctx->vocab = llama_model_get_vocab(model_ctx->model);
+
+    int32_t model_ctx_size = llama_model_n_ctx_train(model_ctx->model);
     if (context_size <= 0) {
         context_size = model_ctx_size;
     }
@@ -135,7 +139,7 @@ DARTLLM_API void* dartllm_load_model(
     ctx_params.n_threads = model_ctx->n_threads;
     ctx_params.n_threads_batch = model_ctx->n_threads;
 
-    model_ctx->ctx = llama_new_context_with_model(model_ctx->model, ctx_params);
+    model_ctx->ctx = llama_init_from_model(model_ctx->model, ctx_params);
     if (!model_ctx->ctx) {
         set_error("Failed to create context");
         return nullptr;
@@ -170,9 +174,10 @@ DARTLLM_API DartLLMModelInfo* dartllm_get_model_info(void* model) {
 
     std::memset(info, 0, sizeof(DartLLMModelInfo));
 
-    const char* model_name = llama_model_meta_val_str(ctx->model, "general.name");
-    if (model_name) {
-        copy_string(info->name, sizeof(info->name), model_name);
+    char meta_buf[256];
+    int32_t meta_len = llama_model_meta_val_str(ctx->model, "general.name", meta_buf, sizeof(meta_buf));
+    if (meta_len > 0) {
+        copy_string(info->name, sizeof(info->name), meta_buf);
     } else {
         std::string path = ctx->model_path;
         size_t last_sep = path.find_last_of("/\\");
@@ -180,32 +185,32 @@ DARTLLM_API DartLLMModelInfo* dartllm_get_model_info(void* model) {
         copy_string(info->name, sizeof(info->name), filename);
     }
 
-    const char* arch = llama_model_meta_val_str(ctx->model, "general.architecture");
-    if (arch) {
-        copy_string(info->architecture, sizeof(info->architecture), arch);
+    meta_len = llama_model_meta_val_str(ctx->model, "general.architecture", meta_buf, sizeof(meta_buf));
+    if (meta_len > 0) {
+        copy_string(info->architecture, sizeof(info->architecture), meta_buf);
     } else {
         copy_string(info->architecture, sizeof(info->architecture), "unknown");
     }
 
-    const char* quant = llama_model_meta_val_str(ctx->model, "general.quantization_version");
-    if (quant) {
-        copy_string(info->quantization, sizeof(info->quantization), quant);
+    meta_len = llama_model_meta_val_str(ctx->model, "general.quantization_version", meta_buf, sizeof(meta_buf));
+    if (meta_len > 0) {
+        copy_string(info->quantization, sizeof(info->quantization), meta_buf);
     } else {
         copy_string(info->quantization, sizeof(info->quantization), "unknown");
     }
 
     info->parameter_count = llama_model_n_params(ctx->model);
     info->context_size = ctx->context_size;
-    info->vocabulary_size = llama_n_vocab(ctx->model);
-    info->embedding_size = llama_n_embd(ctx->model);
-    info->layer_count = llama_n_layer(ctx->model);
-    info->head_count = llama_n_head(ctx->model);
+    info->vocabulary_size = llama_vocab_n_tokens(ctx->vocab);
+    info->embedding_size = llama_model_n_embd(ctx->model);
+    info->layer_count = llama_model_n_layer(ctx->model);
+    info->head_count = llama_model_n_head(ctx->model);
     info->file_size_bytes = llama_model_size(ctx->model);
     info->supports_embedding = llama_model_has_encoder(ctx->model) ? 1 : 0;
     info->supports_vision = 0;
 
     std::vector<char> template_buf(4096);
-    int32_t template_len = llama_model_meta_val_str_by_key(
+    int32_t template_len = llama_model_meta_val_str(
         ctx->model,
         "tokenizer.chat_template",
         template_buf.data(),
@@ -235,47 +240,33 @@ DARTLLM_API int32_t* dartllm_tokenize(
 
     auto* ctx = static_cast<ModelContext*>(model);
     size_t text_len = std::strlen(text);
-    std::vector<llama_token> tokens(text_len + 16);
 
-    int32_t n_tokens = llama_tokenize(
-        ctx->model,
-        text,
-        text_len,
-        tokens.data(),
-        tokens.size(),
-        add_special != 0,
-        true
-    );
+    int32_t n_tokens = -llama_tokenize(ctx->vocab, text, text_len, nullptr, 0, add_special != 0, true);
 
-    if (n_tokens < 0) {
-        tokens.resize(-n_tokens);
-        n_tokens = llama_tokenize(
-            ctx->model,
-            text,
-            text_len,
-            tokens.data(),
-            tokens.size(),
-            add_special != 0,
-            true
-        );
-    }
-
-    if (n_tokens < 0) {
+    if (n_tokens <= 0) {
         set_error("Tokenization failed");
         return nullptr;
     }
 
-    auto* result = static_cast<int32_t*>(std::malloc(n_tokens * sizeof(int32_t)));
+    std::vector<llama_token> tokens(n_tokens);
+    int32_t actual = llama_tokenize(ctx->vocab, text, text_len, tokens.data(), tokens.size(), add_special != 0, true);
+
+    if (actual < 0) {
+        set_error("Tokenization failed");
+        return nullptr;
+    }
+
+    auto* result = static_cast<int32_t*>(std::malloc(actual * sizeof(int32_t)));
     if (!result) {
         set_error("Failed to allocate token array");
         return nullptr;
     }
 
-    for (int32_t i = 0; i < n_tokens; i++) {
+    for (int32_t i = 0; i < actual; i++) {
         result[i] = tokens[i];
     }
 
-    *out_length = n_tokens;
+    *out_length = actual;
     return result;
 }
 
@@ -298,7 +289,7 @@ DARTLLM_API char* dartllm_detokenize(
 
     for (int32_t i = 0; i < token_count; i++) {
         char buf[256];
-        int32_t n = llama_token_to_piece(ctx->model, tokens[i], buf, sizeof(buf), 0, true);
+        int32_t n = llama_token_to_piece(ctx->vocab, tokens[i], buf, sizeof(buf), 0, true);
         if (n > 0) {
             result.append(buf, n);
         }
@@ -326,6 +317,8 @@ DARTLLM_API DartLLMGenerateResult* dartllm_generate(
     float repetition_penalty,
     int32_t seed
 ) {
+    (void)repetition_penalty;
+
     if (!model || !prompt_tokens || prompt_length <= 0) {
         set_error("Invalid parameters");
         return nullptr;
@@ -335,59 +328,42 @@ DARTLLM_API DartLLMGenerateResult* dartllm_generate(
 
     auto* ctx = static_cast<ModelContext*>(model);
 
-    llama_kv_cache_clear(ctx->ctx);
     llama_sampler_reset(ctx->sampler);
-
     llama_sampler_chain_add(ctx->sampler, llama_sampler_init_top_k(top_k));
     llama_sampler_chain_add(ctx->sampler, llama_sampler_init_top_p(top_p, 1));
     llama_sampler_chain_add(ctx->sampler, llama_sampler_init_min_p(min_p, 1));
     llama_sampler_chain_add(ctx->sampler, llama_sampler_init_temp(temperature));
     llama_sampler_chain_add(ctx->sampler, llama_sampler_init_dist(seed >= 0 ? seed : LLAMA_DEFAULT_SEED));
 
-    llama_batch batch = llama_batch_init(prompt_length, 0, 1);
-
-    for (int32_t i = 0; i < prompt_length; i++) {
-        llama_batch_add(batch, prompt_tokens[i], i, { 0 }, false);
-    }
-    batch.logits[batch.n_tokens - 1] = true;
+    std::vector<llama_token> prompt_vec(prompt_tokens, prompt_tokens + prompt_length);
+    llama_batch batch = llama_batch_get_one(prompt_vec.data(), prompt_vec.size());
 
     if (llama_decode(ctx->ctx, batch) != 0) {
-        llama_batch_free(batch);
         set_error("Failed to process prompt");
         return nullptr;
     }
 
-    llama_batch_free(batch);
-
     std::vector<llama_token> generated;
     generated.reserve(max_tokens);
 
-    int32_t n_cur = prompt_length;
     int32_t finish_reason = 1;
-
-    llama_token eos_token = llama_token_eos(ctx->model);
 
     for (int32_t i = 0; i < max_tokens; i++) {
         llama_token new_token = llama_sampler_sample(ctx->sampler, ctx->ctx, -1);
 
-        if (llama_token_is_eog(ctx->model, new_token)) {
+        if (llama_vocab_is_eog(ctx->vocab, new_token)) {
             finish_reason = 0;
             break;
         }
 
         generated.push_back(new_token);
 
-        llama_batch next_batch = llama_batch_init(1, 0, 1);
-        llama_batch_add(next_batch, new_token, n_cur, { 0 }, true);
+        llama_batch next_batch = llama_batch_get_one(&new_token, 1);
 
         if (llama_decode(ctx->ctx, next_batch) != 0) {
-            llama_batch_free(next_batch);
             finish_reason = 2;
             break;
         }
-
-        llama_batch_free(next_batch);
-        n_cur++;
     }
 
     size_t result_size = sizeof(DartLLMGenerateResult) + generated.size() * sizeof(int32_t);
@@ -421,6 +397,8 @@ DARTLLM_API int32_t dartllm_generate_stream(
     DartLLMStreamCallback callback,
     void* user_data
 ) {
+    (void)repetition_penalty;
+
     if (!model || !prompt_tokens || prompt_length <= 0 || !callback) {
         set_error("Invalid parameters");
         return -1;
@@ -430,43 +408,33 @@ DARTLLM_API int32_t dartllm_generate_stream(
 
     auto* ctx = static_cast<ModelContext*>(model);
 
-    llama_kv_cache_clear(ctx->ctx);
     llama_sampler_reset(ctx->sampler);
-
     llama_sampler_chain_add(ctx->sampler, llama_sampler_init_top_k(top_k));
     llama_sampler_chain_add(ctx->sampler, llama_sampler_init_top_p(top_p, 1));
     llama_sampler_chain_add(ctx->sampler, llama_sampler_init_min_p(min_p, 1));
     llama_sampler_chain_add(ctx->sampler, llama_sampler_init_temp(temperature));
     llama_sampler_chain_add(ctx->sampler, llama_sampler_init_dist(seed >= 0 ? seed : LLAMA_DEFAULT_SEED));
 
-    llama_batch batch = llama_batch_init(prompt_length, 0, 1);
-
-    for (int32_t i = 0; i < prompt_length; i++) {
-        llama_batch_add(batch, prompt_tokens[i], i, { 0 }, false);
-    }
-    batch.logits[batch.n_tokens - 1] = true;
+    std::vector<llama_token> prompt_vec(prompt_tokens, prompt_tokens + prompt_length);
+    llama_batch batch = llama_batch_get_one(prompt_vec.data(), prompt_vec.size());
 
     if (llama_decode(ctx->ctx, batch) != 0) {
-        llama_batch_free(batch);
         set_error("Failed to process prompt");
         return -2;
     }
 
-    llama_batch_free(batch);
-
-    int32_t n_cur = prompt_length;
     int32_t finish_reason = 1;
     char token_buf[256];
 
     for (int32_t i = 0; i < max_tokens; i++) {
         llama_token new_token = llama_sampler_sample(ctx->sampler, ctx->ctx, -1);
 
-        int8_t is_eog = llama_token_is_eog(ctx->model, new_token) ? 1 : 0;
+        int8_t is_eog = llama_vocab_is_eog(ctx->vocab, new_token) ? 1 : 0;
         if (is_eog) {
             finish_reason = 0;
         }
 
-        int32_t text_len = llama_token_to_piece(ctx->model, new_token, token_buf, sizeof(token_buf) - 1, 0, true);
+        int32_t text_len = llama_token_to_piece(ctx->vocab, new_token, token_buf, sizeof(token_buf) - 1, 0, true);
         if (text_len > 0) {
             token_buf[text_len] = '\0';
         } else {
@@ -485,17 +453,12 @@ DARTLLM_API int32_t dartllm_generate_stream(
             break;
         }
 
-        llama_batch next_batch = llama_batch_init(1, 0, 1);
-        llama_batch_add(next_batch, new_token, n_cur, { 0 }, true);
+        llama_batch next_batch = llama_batch_get_one(&new_token, 1);
 
         if (llama_decode(ctx->ctx, next_batch) != 0) {
-            llama_batch_free(next_batch);
             callback(0, "", 1, 2, user_data);
             return -3;
         }
-
-        llama_batch_free(next_batch);
-        n_cur++;
     }
 
     if (finish_reason == 1) {
@@ -526,23 +489,15 @@ DARTLLM_API float* dartllm_embed(
         return nullptr;
     }
 
-    llama_kv_cache_clear(ctx->ctx);
-
-    llama_batch batch = llama_batch_init(token_count, 0, 1);
-
-    for (int32_t i = 0; i < token_count; i++) {
-        llama_batch_add(batch, tokens[i], i, { 0 }, i == token_count - 1);
-    }
+    std::vector<llama_token> token_vec(tokens, tokens + token_count);
+    llama_batch batch = llama_batch_get_one(token_vec.data(), token_vec.size());
 
     if (llama_encode(ctx->ctx, batch) != 0) {
-        llama_batch_free(batch);
         set_error("Failed to encode tokens");
         return nullptr;
     }
 
-    llama_batch_free(batch);
-
-    int32_t n_embd = llama_n_embd(ctx->model);
+    int32_t n_embd = llama_model_n_embd(ctx->model);
     float* embeddings = llama_get_embeddings(ctx->ctx);
 
     if (!embeddings) {

@@ -1,0 +1,64 @@
+# FFI binding generation configuration for DartLLM
+# Run: dart run ffigen --config ffigen.yaml
+
+name: DartLLMBindings
+description: Auto-generated FFI bindings for DartLLM native library.
+output: lib/src/platform/generated_bindings.dart
+
+headers:
+  entry-points:
+    - native/src/dartllm.h
+
+# Generate comments from C documentation
+comments:
+  style: any
+  length: full
+
+# Function filtering - include all dartllm_* functions
+functions:
+  include:
+    - dartllm_.*
+
+# Struct filtering
+structs:
+  include:
+    - DartLLMModelInfo
+    - DartLLMGenerateResult
+  exclude:
+    - __.*
+
+# Typedef filtering - include callback
+typedefs:
+  include:
+    - DartLLMStreamCallback
+
+# Exclude all unnamed enums and globals
+unnamed-enums:
+  exclude:
+    - .*
+
+globals:
+  exclude:
+    - .*
+
+# Exclude macros (the int/size constants)
+macros:
+  exclude:
+    - .*
+
+# Compiler options
+compiler-opts:
+  - '-I/usr/local/include'
+
+# preamble for the generated file
+preamble: |
+  // ignore_for_file: always_specify_types
+  // ignore_for_file: camel_case_types
+  // ignore_for_file: non_constant_identifier_names
+  // ignore_for_file: unused_element
+  // ignore_for_file: unused_field
+
+  /// Auto-generated FFI bindings for DartLLM.
+  ///
+  /// These bindings are generated from native/src/dartllm.h using ffigen.
+  /// To regenerate: dart run ffigen --config ffigen.yaml

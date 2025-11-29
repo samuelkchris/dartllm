@@ -1,5 +1,4 @@
 build/
-llama.cpp/
 *.o
 *.a
 *.so
