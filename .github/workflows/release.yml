@@ -1,0 +1,138 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build for macOS (Universal)
+        run: |
+          mkdir -p native/build/macos
+          cmake -B native/build/macos -S native \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DGGML_METAL=ON \
+            -DGGML_METAL_EMBED_LIBRARY=ON \
+            -DLLAMA_BUILD_TESTS=OFF \
+            -DLLAMA_BUILD_EXAMPLES=OFF \
+            -DLLAMA_BUILD_SERVER=OFF \
+            -DBUILD_SHARED_LIBS=ON \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          cmake --build native/build/macos --config Release -j$(sysctl -n hw.ncpu)
+
+      - name: Package
+        run: |
+          mkdir -p blobs/macos
+          cp -R native/build/macos/llamacpp.framework blobs/macos/
+          for lib in native/build/macos/bin/*.dylib; do
+            [ -f "$lib" ] && [ ! -L "$lib" ] && cp "$lib" blobs/macos/
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-blobs
+          path: blobs/macos/
+
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake build-essential
+
+      - name: Build for Linux
+        run: |
+          mkdir -p native/build/linux
+          cmake -B native/build/linux -S native \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DLLAMA_BUILD_TESTS=OFF \
+            -DLLAMA_BUILD_EXAMPLES=OFF \
+            -DLLAMA_BUILD_SERVER=OFF \
+            -DBUILD_SHARED_LIBS=ON
+          cmake --build native/build/linux --config Release -j$(nproc)
+
+      - name: Package
+        run: |
+          mkdir -p blobs/linux
+          for lib in native/build/linux/*.so native/build/linux/bin/*.so*; do
+            [ -f "$lib" ] && [ ! -L "$lib" ] && cp "$lib" blobs/linux/
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-blobs
+          path: blobs/linux/
+
+  build-windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Build for Windows
+        run: |
+          cmake -B native/build/windows -S native `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DLLAMA_BUILD_TESTS=OFF `
+            -DLLAMA_BUILD_EXAMPLES=OFF `
+            -DLLAMA_BUILD_SERVER=OFF `
+            -DBUILD_SHARED_LIBS=ON
+          cmake --build native/build/windows --config Release
+
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path blobs/windows
+          Get-ChildItem -Path native/build/windows -Recurse -Include *.dll |
+            Where-Object { -not $_.PSIsContainer } |
+            Copy-Item -Destination blobs/windows/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-blobs
+          path: blobs/windows/
+
+  package:
+    needs: [build-macos, build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-blobs
+          path: blobs/macos/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-blobs
+          path: blobs/linux/
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-blobs
+          path: blobs/windows/
+
+      - name: List binaries
+        run: |
+          echo "=== Package contents ==="
+          find blobs -type f -exec ls -lh {} \;
+          echo "=== Total size ==="
+          du -sh blobs/
+
+      - name: Upload all binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-platform-binaries
+          path: blobs/
