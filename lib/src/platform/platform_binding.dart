@@ -133,12 +133,16 @@ class GenerateStreamChunk {
   /// The generated token ID.
   final int token;
 
+  /// The decoded text for this token.
+  final String? text;
+
   /// Why generation stopped (null if not finished).
   final FinishReason? finishReason;
 
   /// Creates a stream chunk.
   const GenerateStreamChunk({
     required this.token,
+    this.text,
     this.finishReason,
   });
 

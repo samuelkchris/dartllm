@@ -336,14 +336,19 @@ class WasmBinding implements PlatformBinding {
   Stream<GenerateStreamChunk> generateStream(GenerateRequest request) async* {
     _checkReady();
 
-    // WASM doesn't support true streaming, so we generate fully
-    // and yield tokens one at a time.
     final result = await generate(request);
 
     for (var i = 0; i < result.tokens.length; i++) {
       final isLast = i == result.tokens.length - 1;
+      final tokenText = await detokenize(
+        DetokenizeRequest(
+          modelHandle: request.modelHandle,
+          tokens: [result.tokens[i]],
+        ),
+      );
       yield GenerateStreamChunk(
         token: result.tokens[i],
+        text: tokenText,
         finishReason: isLast ? result.finishReason : null,
       );
     }
